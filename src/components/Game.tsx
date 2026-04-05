@@ -698,16 +698,16 @@ export default function Game() {
           className="block cursor-none max-w-full"
           style={{ aspectRatio: `${GW}/${GH}` }} />
 
-        {/* Overlays */}
+        {/* Overlays – pointer-events only on buttons, pass clicks to canvas */}
         {(!launched || gameOver || stageClear) && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-none">
             {stageClear ? (
               <>
                 <p className="text-3xl font-bold text-emerald-400 mb-1">Stage 1 Clear!</p>
                 <p className="text-zinc-300 mb-4">20번 칼슘까지 정복했습니다</p>
                 <p className="text-zinc-400 mb-4">Final Score: <span className="text-indigo-400 font-bold">{score}</span></p>
                 <button onClick={restartGame}
-                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                  className="pointer-events-auto px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)]">
                   다시 시작
                 </button>
               </>
@@ -716,7 +716,7 @@ export default function Game() {
                 <p className="text-4xl font-bold text-red-400 mb-2">GAME OVER</p>
                 <p className="text-zinc-400 mb-4">Final Score: <span className="text-indigo-400 font-bold">{score}</span></p>
                 <button onClick={restartGame}
-                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)]">
+                  className="pointer-events-auto px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)]">
                   RESTART
                 </button>
               </>
