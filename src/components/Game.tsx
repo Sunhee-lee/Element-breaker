@@ -2,217 +2,154 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Matter from "matter-js";
+import {
+  ELEMENTS,
+  DESTROYABLE_COUNT,
+  GROUP_COLORS,
+  type ElementDef,
+  type VfxKey,
+} from "@/game/elements";
+import { executeEffect, type BlockRuntime, type GameState } from "@/game/effects";
+import { VfxManager } from "@/game/vfx";
 
-const GAME_WIDTH = 480;
-const GAME_HEIGHT = 640;
-const PADDLE_WIDTH = 100;
-const PADDLE_HEIGHT = 14;
-const BALL_RADIUS = 8;
-const WALL_THICKNESS = 20;
-const INITIAL_LIVES = 3;
-const BALL_SPEED = 6;
+// ── Constants ─────────────────────────────────────────────
+const GW = 480;
+const GH = 640;
+const PADDLE_W = 100;
+const PADDLE_H = 14;
+const BALL_R = 8;
+const WALL_T = 20;
+const LIVES = 3;
+const BASE_SPEED = 6;
+const COLS = 18;
+const BG = 2;
+const BM = 6;
+const BW = Math.floor((GW - BM * 2 - (COLS - 1) * BG) / COLS);
+const BH = 30;
+const BT = 30;
+const CAT = { WALL: 0x0001, PADDLE: 0x0002, BALL: 0x0004, BLOCK: 0x0008 };
+const CHAIN_BONUS = 50; // extra per chain depth
 
-// Block dimensions for 18-column periodic table
-const BLOCK_COLS = 18;
-const BLOCK_GAP = 2;
-const BLOCK_MARGIN_X = 6;
-const BLOCK_WIDTH = Math.floor(
-  (GAME_WIDTH - BLOCK_MARGIN_X * 2 - (BLOCK_COLS - 1) * BLOCK_GAP) / BLOCK_COLS
-);
-const BLOCK_HEIGHT = 30;
-const BLOCK_TOP_OFFSET = 30;
-
-// Category filters for collision
-const CATEGORY = {
-  WALL: 0x0001,
-  PADDLE: 0x0002,
-  BALL: 0x0004,
-  BLOCK: 0x0008,
-};
-
-// Element groups
-type ElementGroup =
-  | "alkali-metal"
-  | "alkaline-earth"
-  | "noble-gas"
-  | "halogen"
-  | "other";
-
-interface ElementData {
-  atomicNumber: number;
-  symbol: string;
-  group: ElementGroup;
-  row: number; // periodic table row (1-4)
-  col: number; // periodic table column (1-18)
-  isDestroyable: boolean;
-  hp: number; // hit points: 1 for special groups, 2 for "other"
+// ── Helpers ───────────────────────────────────────────────
+function blockPos(row: number, col: number) {
+  return {
+    x: BM + (col - 1) * (BW + BG) + BW / 2,
+    y: BT + (row - 1) * (BH + BG) + BH / 2,
+  };
 }
 
-// Color schemes per group
-const GROUP_COLORS: Record<
-  ElementGroup,
-  { fill: string; glow: string; text: string; border: string }
-> = {
-  "alkali-metal": {
-    fill: "#dc2626",
-    glow: "rgba(220, 38, 38, 0.5)",
-    text: "#fecaca",
-    border: "#f87171",
-  },
-  "alkaline-earth": {
-    fill: "#ea580c",
-    glow: "rgba(234, 88, 12, 0.5)",
-    text: "#fed7aa",
-    border: "#fb923c",
-  },
-  "noble-gas": {
-    fill: "#0ea5e9",
-    glow: "rgba(14, 165, 233, 0.6)",
-    text: "#e0f2fe",
-    border: "#38bdf8",
-  },
-  halogen: {
-    fill: "#65a30d",
-    glow: "rgba(101, 163, 13, 0.5)",
-    text: "#ecfccb",
-    border: "#84cc16",
-  },
-  other: {
-    fill: "#52525b",
-    glow: "rgba(82, 82, 91, 0.4)",
-    text: "#e4e4e7",
-    border: "#a1a1aa",
-  },
-};
-
-// Damaged "other" colors (hp = 1, cracked)
-const OTHER_DAMAGED_COLORS = {
-  fill: "#3f3f46",
-  glow: "rgba(63, 63, 70, 0.3)",
-  text: "#d4d4d8",
-  border: "#71717a",
-};
-
-// Elements 1-20 in standard 18-column layout
-const ELEMENTS: ElementData[] = [
-  // Row 1
-  { atomicNumber: 1, symbol: "H", group: "other", row: 1, col: 1, isDestroyable: true, hp: 2 },
-  { atomicNumber: 2, symbol: "He", group: "noble-gas", row: 1, col: 18, isDestroyable: true, hp: 1 },
-  // Row 2
-  { atomicNumber: 3, symbol: "Li", group: "alkali-metal", row: 2, col: 1, isDestroyable: true, hp: 1 },
-  { atomicNumber: 4, symbol: "Be", group: "alkaline-earth", row: 2, col: 2, isDestroyable: true, hp: 1 },
-  { atomicNumber: 5, symbol: "B", group: "other", row: 2, col: 13, isDestroyable: true, hp: 2 },
-  { atomicNumber: 6, symbol: "C", group: "other", row: 2, col: 14, isDestroyable: true, hp: 2 },
-  { atomicNumber: 7, symbol: "N", group: "other", row: 2, col: 15, isDestroyable: true, hp: 2 },
-  { atomicNumber: 8, symbol: "O", group: "other", row: 2, col: 16, isDestroyable: true, hp: 2 },
-  { atomicNumber: 9, symbol: "F", group: "halogen", row: 2, col: 17, isDestroyable: true, hp: 1 },
-  { atomicNumber: 10, symbol: "Ne", group: "noble-gas", row: 2, col: 18, isDestroyable: true, hp: 1 },
-  // Row 3
-  { atomicNumber: 11, symbol: "Na", group: "alkali-metal", row: 3, col: 1, isDestroyable: true, hp: 1 },
-  { atomicNumber: 12, symbol: "Mg", group: "alkaline-earth", row: 3, col: 2, isDestroyable: true, hp: 1 },
-  { atomicNumber: 13, symbol: "Al", group: "other", row: 3, col: 13, isDestroyable: true, hp: 2 },
-  { atomicNumber: 14, symbol: "Si", group: "other", row: 3, col: 14, isDestroyable: true, hp: 2 },
-  { atomicNumber: 15, symbol: "P", group: "other", row: 3, col: 15, isDestroyable: true, hp: 2 },
-  { atomicNumber: 16, symbol: "S", group: "other", row: 3, col: 16, isDestroyable: true, hp: 2 },
-  { atomicNumber: 17, symbol: "Cl", group: "halogen", row: 3, col: 17, isDestroyable: true, hp: 1 },
-  { atomicNumber: 18, symbol: "Ar", group: "noble-gas", row: 3, col: 18, isDestroyable: true, hp: 1 },
-  // Row 4 (only K and Ca for elements 1-20)
-  { atomicNumber: 19, symbol: "K", group: "alkali-metal", row: 4, col: 1, isDestroyable: true, hp: 1 },
-  { atomicNumber: 20, symbol: "Ca", group: "alkaline-earth", row: 4, col: 2, isDestroyable: true, hp: 1 },
-];
-
-// Runtime block state attached to Matter.js bodies
-interface BlockState {
-  element: ElementData;
-  hp: number;
-  body: Matter.Body;
-  alive: boolean;
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number, r: number,
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }
 
-function getBlockPosition(row: number, col: number) {
-  const x =
-    BLOCK_MARGIN_X + (col - 1) * (BLOCK_WIDTH + BLOCK_GAP) + BLOCK_WIDTH / 2;
-  const y = BLOCK_TOP_OFFSET + (row - 1) * (BLOCK_HEIGHT + BLOCK_GAP) + BLOCK_HEIGHT / 2;
-  return { x, y };
-}
-
+// ══════════════════════════════════════════════════════════
+//  Component
+// ══════════════════════════════════════════════════════════
 export default function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
   const runnerRef = useRef<Matter.Runner | null>(null);
   const paddleRef = useRef<Matter.Body | null>(null);
   const ballRef = useRef<Matter.Body | null>(null);
-  const blocksRef = useRef<BlockState[]>([]);
-  const animFrameRef = useRef<number>(0);
-  const isDraggingRef = useRef(false);
-  const lastMouseXRef = useRef(GAME_WIDTH / 2);
-  const destroyEffectsRef = useRef<
-    { x: number; y: number; color: string; tick: number }[]
-  >([]);
+  const blocksRef = useRef<BlockRuntime[]>([]);
+  const vfxRef = useRef(new VfxManager());
+  const animRef = useRef(0);
+  const draggingRef = useRef(false);
+  const stateRef = useRef<GameState | null>(null);
 
-  const [lives, setLives] = useState(INITIAL_LIVES);
+  const [lives, setLives] = useState(LIVES);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
+  const [stageClear, setStageClear] = useState(false);
   const [launched, setLaunched] = useState(false);
-  const [blocksLeft, setBlocksLeft] = useState(ELEMENTS.length);
+  const [blocksLeft, setBlocksLeft] = useState(DESTROYABLE_COUNT);
 
-  const livesRef = useRef(INITIAL_LIVES);
+  const livesRef = useRef(LIVES);
   const scoreRef = useRef(0);
-  const gameOverRef = useRef(false);
+  const goRef = useRef(false);
   const launchedRef = useRef(false);
+  const clearRef = useRef(false);
+  const ballSpeedRef = useRef(BASE_SPEED);
+  const ballRadiusRef = useRef(BALL_R);
+  const paddleWRef = useRef(PADDLE_W);
+  const paddleSpeedMultRef = useRef(1);
+  const floorShieldEndRef = useRef(0);
+  const trajectoryEndRef = useRef(0);
+  const trajectoryBouncesRef = useRef(0);
+  const scoreMultRef = useRef(1);
+  const timedEffectsRef = useRef<{ key: string; endTime: number; revert: () => void }[]>([]);
+  const gasZoneEndRef = useRef(0);
+  const gasZoneHeightRef = useRef(0);
 
-  const createBlocks = useCallback((engine: Matter.Engine): BlockState[] => {
-    const blocks: BlockState[] = [];
+  // ── Sync helpers (React state ← refs for render loop) ──
+  const syncUI = useCallback(() => {
+    setScore(scoreRef.current);
+    setLives(livesRef.current);
+    setBlocksLeft(blocksRef.current.filter((b) => b.alive && b.breakable).length);
+  }, []);
 
+  // ── Create blocks ──
+  const createBlocks = useCallback((engine: Matter.Engine): BlockRuntime[] => {
+    const blocks: BlockRuntime[] = [];
     for (const el of ELEMENTS) {
-      const pos = getBlockPosition(el.row, el.col);
-      const body = Matter.Bodies.rectangle(
-        pos.x,
-        pos.y,
-        BLOCK_WIDTH,
-        BLOCK_HEIGHT,
-        {
-          isStatic: true,
-          restitution: 1,
-          friction: 0,
-          frictionStatic: 0,
-          collisionFilter: { category: CATEGORY.BLOCK },
-          label: `block-${el.atomicNumber}`,
-        }
-      );
-
-      const state: BlockState = {
-        element: { ...el },
-        hp: el.hp,
-        body,
+      const p = blockPos(el.row, el.col);
+      const body = Matter.Bodies.rectangle(p.x, p.y, BW, BH, {
+        isStatic: true,
+        restitution: 1,
+        friction: 0,
+        frictionStatic: 0,
+        collisionFilter: { category: CAT.BLOCK },
+        label: `block-${el.atomicNumber}`,
+      });
+      blocks.push({
+        id: el.atomicNumber,
+        x: p.x, y: p.y,
         alive: true,
-      };
-      blocks.push(state);
+        hp: el.durability,
+        frozen: false,
+        symbol: el.symbol,
+        effect: el.effect,
+        params: { ...el.params },
+        vfx: el.vfx,
+        group: el.group,
+        breakable: el.breakable,
+        body,
+      } as BlockRuntime & { body: Matter.Body });
       Matter.Composite.add(engine.world, body);
     }
-
     return blocks;
   }, []);
 
   const resetBall = useCallback(() => {
     if (!ballRef.current || !paddleRef.current) return;
-    const paddle = paddleRef.current;
-    const ball = ballRef.current;
-    Matter.Body.setPosition(ball, {
-      x: paddle.position.x,
-      y: paddle.position.y - PADDLE_HEIGHT / 2 - BALL_RADIUS - 2,
+    Matter.Body.setPosition(ballRef.current, {
+      x: paddleRef.current.position.x,
+      y: paddleRef.current.position.y - PADDLE_H / 2 - BALL_R - 2,
     });
-    Matter.Body.setVelocity(ball, { x: 0, y: 0 });
+    Matter.Body.setVelocity(ballRef.current, { x: 0, y: 0 });
     launchedRef.current = false;
     setLaunched(false);
   }, []);
 
   const launchBall = useCallback(() => {
-    if (!ballRef.current || launchedRef.current || gameOverRef.current) return;
-    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+    if (!ballRef.current || launchedRef.current || goRef.current || clearRef.current) return;
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * 0.6;
     Matter.Body.setVelocity(ballRef.current, {
-      x: Math.cos(angle) * BALL_SPEED,
-      y: Math.sin(angle) * BALL_SPEED,
+      x: Math.cos(a) * BASE_SPEED,
+      y: Math.sin(a) * BASE_SPEED,
     });
     launchedRef.current = true;
     setLaunched(true);
@@ -221,136 +158,163 @@ export default function Game() {
   const restartGame = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return;
-
-    // Remove old blocks
-    for (const block of blocksRef.current) {
-      Matter.Composite.remove(engine.world, block.body);
+    for (const b of blocksRef.current) {
+      const body = (b as BlockRuntime & { body: Matter.Body }).body;
+      if (body) Matter.Composite.remove(engine.world, body);
     }
-
-    // Create fresh blocks
     blocksRef.current = createBlocks(engine);
-    setBlocksLeft(ELEMENTS.length);
-
-    livesRef.current = INITIAL_LIVES;
+    livesRef.current = LIVES;
     scoreRef.current = 0;
-    gameOverRef.current = false;
-    destroyEffectsRef.current = [];
-    setLives(INITIAL_LIVES);
-    setScore(0);
+    goRef.current = false;
+    clearRef.current = false;
+    ballSpeedRef.current = BASE_SPEED;
+    ballRadiusRef.current = BALL_R;
+    paddleWRef.current = PADDLE_W;
+    paddleSpeedMultRef.current = 1;
+    floorShieldEndRef.current = 0;
+    trajectoryEndRef.current = 0;
+    scoreMultRef.current = 1;
+    timedEffectsRef.current = [];
+    gasZoneEndRef.current = 0;
+    vfxRef.current.clear();
     setGameOver(false);
+    setStageClear(false);
+    setBlocksLeft(DESTROYABLE_COUNT);
+    setScore(0);
+    setLives(LIVES);
     resetBall();
   }, [resetBall, createBlocks]);
 
+  // ══════════════════════════════════════════════════════
+  //  Main effect – physics, collision, rendering
+  // ══════════════════════════════════════════════════════
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const ctx = canvas.getContext("2d")!;
+    const vfx = vfxRef.current;
 
-    // Create engine (no gravity)
-    const engine = Matter.Engine.create({
-      gravity: { x: 0, y: 0 },
-    });
+    // ── Engine ──
+    const engine = Matter.Engine.create({ gravity: { x: 0, y: 0 } });
     engineRef.current = engine;
 
-    // Walls: top, left, right (no bottom)
-    const wallOptions: Matter.IChamferableBodyDefinition = {
-      isStatic: true,
-      restitution: 1,
-      friction: 0,
-      frictionStatic: 0,
-      collisionFilter: { category: CATEGORY.WALL },
+    const wo: Matter.IChamferableBodyDefinition = {
+      isStatic: true, restitution: 1, friction: 0, frictionStatic: 0,
+      collisionFilter: { category: CAT.WALL },
     };
+    const topW = Matter.Bodies.rectangle(GW / 2, -WALL_T / 2, GW + WALL_T * 2, WALL_T, wo);
+    const leftW = Matter.Bodies.rectangle(-WALL_T / 2, GH / 2, WALL_T, GH, wo);
+    const rightW = Matter.Bodies.rectangle(GW + WALL_T / 2, GH / 2, WALL_T, GH, wo);
 
-    const topWall = Matter.Bodies.rectangle(
-      GAME_WIDTH / 2,
-      -WALL_THICKNESS / 2,
-      GAME_WIDTH + WALL_THICKNESS * 2,
-      WALL_THICKNESS,
-      wallOptions
-    );
-    const leftWall = Matter.Bodies.rectangle(
-      -WALL_THICKNESS / 2,
-      GAME_HEIGHT / 2,
-      WALL_THICKNESS,
-      GAME_HEIGHT,
-      wallOptions
-    );
-    const rightWall = Matter.Bodies.rectangle(
-      GAME_WIDTH + WALL_THICKNESS / 2,
-      GAME_HEIGHT / 2,
-      WALL_THICKNESS,
-      GAME_HEIGHT,
-      wallOptions
-    );
-
-    // Paddle
-    const paddle = Matter.Bodies.rectangle(
-      GAME_WIDTH / 2,
-      GAME_HEIGHT - 40,
-      PADDLE_WIDTH,
-      PADDLE_HEIGHT,
-      {
-        isStatic: true,
-        restitution: 1,
-        friction: 0,
-        frictionStatic: 0,
-        chamfer: { radius: 7 },
-        collisionFilter: { category: CATEGORY.PADDLE },
-        label: "paddle",
-      }
-    );
+    const paddle = Matter.Bodies.rectangle(GW / 2, GH - 40, PADDLE_W, PADDLE_H, {
+      isStatic: true, restitution: 1, friction: 0, frictionStatic: 0,
+      chamfer: { radius: 7 },
+      collisionFilter: { category: CAT.PADDLE },
+      label: "paddle",
+    });
     paddleRef.current = paddle;
 
-    // Ball
-    const ball = Matter.Bodies.circle(
-      GAME_WIDTH / 2,
-      GAME_HEIGHT - 40 - PADDLE_HEIGHT / 2 - BALL_RADIUS - 2,
-      BALL_RADIUS,
-      {
-        restitution: 1,
-        friction: 0,
-        frictionAir: 0,
-        frictionStatic: 0,
-        inertia: Infinity,
-        inverseInertia: 0,
-        density: 1,
-        collisionFilter: {
-          category: CATEGORY.BALL,
-          mask: CATEGORY.WALL | CATEGORY.PADDLE | CATEGORY.BLOCK,
-        },
-        label: "ball",
-      }
-    );
+    const ball = Matter.Bodies.circle(GW / 2, GH - 40 - PADDLE_H / 2 - BALL_R - 2, BALL_R, {
+      restitution: 1, friction: 0, frictionAir: 0, frictionStatic: 0,
+      inertia: Infinity, inverseInertia: 0, density: 1,
+      collisionFilter: { category: CAT.BALL, mask: CAT.WALL | CAT.PADDLE | CAT.BLOCK },
+      label: "ball",
+    });
     ballRef.current = ball;
-
-    Matter.Composite.add(engine.world, [
-      topWall,
-      leftWall,
-      rightWall,
-      paddle,
-      ball,
-    ]);
-
-    // Create element blocks
+    Matter.Composite.add(engine.world, [topW, leftW, rightW, paddle, ball]);
     blocksRef.current = createBlocks(engine);
 
-    // Runner
     const runner = Matter.Runner.create();
     runnerRef.current = runner;
     Matter.Runner.run(runner, engine);
 
-    // After each physics update, enforce constant ball speed
+    // ── Build shared GameState ──
+    const gs: GameState = {
+      blocks: blocksRef.current,
+      ball: {
+        x: 0, y: 0, vx: 0, vy: 0,
+        radius: BALL_R, baseRadius: BALL_R,
+        speed: BASE_SPEED, baseSpeed: BASE_SPEED,
+        trailDamage: false, trailEnd: 0, trailInterval: 120,
+      },
+      paddle: {
+        x: GW / 2, y: GH - 40,
+        width: PADDLE_W, baseWidth: PADDLE_W,
+        speedMultiplier: 1,
+      },
+      score: 0,
+      scoreMultiplier: 1,
+      floorShieldEnd: 0,
+      trajectoryEnd: 0,
+      trajectoryBounces: 0,
+      timedEffects: timedEffectsRef.current,
+      chainDepth: 0,
+      addScore: (base: number) => {
+        scoreRef.current += Math.round(base * gs.scoreMultiplier);
+      },
+      destroyBlock: (blk: BlockRuntime) => {
+        if (!blk.alive) return;
+        blk.alive = false;
+        const body = (blk as BlockRuntime & { body: Matter.Body }).body;
+        if (body) {
+          try { Matter.Composite.remove(engine.world, body); } catch { /* already removed */ }
+        }
+        // score with chain bonus
+        const base = blk.id * 10;
+        const chainBonus = gs.chainDepth * CHAIN_BONUS;
+        scoreRef.current += Math.round((base + chainBonus) * gs.scoreMultiplier);
+        // trigger this block's own effect
+        executeEffect(blk.effect, blk, gs);
+        syncUI();
+        // check stage clear
+        const remaining = blocksRef.current.filter((b) => b.alive && b.breakable).length;
+        if (remaining <= 0) {
+          clearRef.current = true;
+          gs.stageClear = true;
+          setStageClear(true);
+          Matter.Body.setVelocity(ball, { x: 0, y: 0 });
+        }
+      },
+      spawnVfx: (key: VfxKey, x: number, y: number, extra?: Record<string, unknown>) => {
+        vfx.spawn(key, x, y, extra);
+      },
+      now: performance.now(),
+      stageClear: false,
+      gasZoneEnd: 0,
+      gasZoneHeight: 0,
+    };
+    stateRef.current = gs;
+
+    // ── afterUpdate: speed enforcement, life loss, timed effects ──
     Matter.Events.on(engine, "afterUpdate", () => {
-      if (!launchedRef.current || gameOverRef.current) {
+      const now = performance.now();
+      gs.now = now;
+
+      // Expire timed effects
+      for (let i = gs.timedEffects.length - 1; i >= 0; i--) {
+        if (now >= gs.timedEffects[i].endTime) {
+          gs.timedEffects[i].revert();
+          gs.timedEffects.splice(i, 1);
+        }
+      }
+
+      // Sync gs ← refs
+      ballSpeedRef.current = gs.ball.speed;
+      ballRadiusRef.current = gs.ball.radius;
+      paddleWRef.current = gs.paddle.width;
+      paddleSpeedMultRef.current = gs.paddle.speedMultiplier;
+      floorShieldEndRef.current = gs.floorShieldEnd;
+      trajectoryEndRef.current = gs.trajectoryEnd;
+      trajectoryBouncesRef.current = gs.trajectoryBounces;
+      scoreMultRef.current = gs.scoreMultiplier;
+      gasZoneEndRef.current = gs.gasZoneEnd;
+      gasZoneHeightRef.current = gs.gasZoneHeight;
+
+      if (!launchedRef.current || goRef.current || clearRef.current) {
         if (!launchedRef.current && paddleRef.current && ballRef.current) {
           Matter.Body.setPosition(ballRef.current, {
             x: paddleRef.current.position.x,
-            y:
-              paddleRef.current.position.y -
-              PADDLE_HEIGHT / 2 -
-              BALL_RADIUS -
-              2,
+            y: paddleRef.current.position.y - PADDLE_H / 2 - BALL_R - 2,
           });
         }
         return;
@@ -359,482 +323,407 @@ export default function Game() {
       const b = ballRef.current;
       if (!b) return;
 
+      // Sync ball state → gs
+      gs.ball.x = b.position.x;
+      gs.ball.y = b.position.y;
+      gs.ball.vx = b.velocity.x;
+      gs.ball.vy = b.velocity.y;
+
       // Ball fell below screen
-      if (b.position.y > GAME_HEIGHT + BALL_RADIUS * 2) {
+      if (b.position.y > GH + BALL_R * 2) {
+        // Floor shield check
+        if (now < floorShieldEndRef.current) {
+          Matter.Body.setPosition(b, { x: b.position.x, y: GH - 10 });
+          Matter.Body.setVelocity(b, { x: b.velocity.x, y: -Math.abs(b.velocity.y) });
+          return;
+        }
         livesRef.current -= 1;
         setLives(livesRef.current);
-
         if (livesRef.current <= 0) {
-          gameOverRef.current = true;
+          goRef.current = true;
           setGameOver(true);
           Matter.Body.setVelocity(b, { x: 0, y: 0 });
-        } else {
-          if (paddleRef.current) {
-            Matter.Body.setPosition(b, {
-              x: paddleRef.current.position.x,
-              y:
-                paddleRef.current.position.y -
-                PADDLE_HEIGHT / 2 -
-                BALL_RADIUS -
-                2,
-            });
-            Matter.Body.setVelocity(b, { x: 0, y: 0 });
-            launchedRef.current = false;
-            setLaunched(false);
-          }
+        } else if (paddleRef.current) {
+          Matter.Body.setPosition(b, {
+            x: paddleRef.current.position.x,
+            y: paddleRef.current.position.y - PADDLE_H / 2 - BALL_R - 2,
+          });
+          Matter.Body.setVelocity(b, { x: 0, y: 0 });
+          launchedRef.current = false;
+          setLaunched(false);
         }
         return;
       }
 
       // Enforce constant speed
+      const sp = gs.ball.speed;
       const vx = b.velocity.x;
       const vy = b.velocity.y;
-      const speed = Math.sqrt(vx * vx + vy * vy);
-      if (speed > 0 && Math.abs(speed - BALL_SPEED) > 0.1) {
-        const scale = BALL_SPEED / speed;
-        Matter.Body.setVelocity(b, { x: vx * scale, y: vy * scale });
+      const mag = Math.sqrt(vx * vx + vy * vy);
+      if (mag > 0 && Math.abs(mag - sp) > 0.1) {
+        const s = sp / mag;
+        Matter.Body.setVelocity(b, { x: vx * s, y: vy * s });
       }
-
-      // Prevent nearly-horizontal bouncing
+      // Prevent horizontal stall
       if (Math.abs(b.velocity.y) < 1) {
         const sign = b.velocity.y >= 0 ? 1 : -1;
-        const newVy = sign * 1.5;
-        const newVx =
-          Math.sign(b.velocity.x) *
-          Math.sqrt(BALL_SPEED * BALL_SPEED - newVy * newVy);
-        Matter.Body.setVelocity(b, { x: newVx, y: newVy });
+        const ny = sign * 1.5;
+        const nx = Math.sign(b.velocity.x) * Math.sqrt(sp * sp - ny * ny);
+        Matter.Body.setVelocity(b, { x: nx, y: ny });
       }
     });
 
-    // Collision events
+    // ── Collision handler ──
     Matter.Events.on(engine, "collisionStart", (event) => {
       for (const pair of event.pairs) {
-        const isPaddleA = pair.bodyA.label === "paddle";
-        const isPaddleB = pair.bodyB.label === "paddle";
-
-        // Paddle collision — angle influence
-        if (isPaddleA || isPaddleB) {
-          const ballBody = isPaddleA ? pair.bodyB : pair.bodyA;
-          const paddleBody = isPaddleA ? pair.bodyA : pair.bodyB;
-
-          const offset =
-            (ballBody.position.x - paddleBody.position.x) / (PADDLE_WIDTH / 2);
-          const clampedOffset = Math.max(-1, Math.min(1, offset));
-          const angle = -Math.PI / 2 + clampedOffset * (Math.PI / 3);
+        // Paddle
+        const isPadA = pair.bodyA.label === "paddle";
+        const isPadB = pair.bodyB.label === "paddle";
+        if (isPadA || isPadB) {
+          const ballBody = isPadA ? pair.bodyB : pair.bodyA;
+          const padBody = isPadA ? pair.bodyA : pair.bodyB;
+          const off = (ballBody.position.x - padBody.position.x) / (paddleWRef.current / 2);
+          const clamped = Math.max(-1, Math.min(1, off));
+          const angle = -Math.PI / 2 + clamped * (Math.PI / 3);
+          const sp = ballSpeedRef.current;
           Matter.Body.setVelocity(ballBody, {
-            x: Math.cos(angle) * BALL_SPEED,
-            y: Math.sin(angle) * BALL_SPEED,
+            x: Math.cos(angle) * sp,
+            y: Math.sin(angle) * sp,
           });
           continue;
         }
 
-        // Block collision
-        const isBlockA = pair.bodyA.label.startsWith("block-");
-        const isBlockB = pair.bodyB.label.startsWith("block-");
-        if (isBlockA || isBlockB) {
-          const blockBody = isBlockA ? pair.bodyA : pair.bodyB;
-          const block = blocksRef.current.find(
-            (b) => b.body === blockBody && b.alive
+        // Block
+        const isBlkA = pair.bodyA.label.startsWith("block-");
+        const isBlkB = pair.bodyB.label.startsWith("block-");
+        if (isBlkA || isBlkB) {
+          const blkBody = isBlkA ? pair.bodyA : pair.bodyB;
+          const blk = blocksRef.current.find(
+            (b) => (b as BlockRuntime & { body: Matter.Body }).body === blkBody && b.alive,
           );
-          if (block) {
-            block.hp -= 1;
-            if (block.hp <= 0) {
-              block.alive = false;
-              Matter.Composite.remove(engine.world, block.body);
+          if (!blk) continue;
 
-              // Destroy effect
-              const colors = GROUP_COLORS[block.element.group];
-              destroyEffectsRef.current.push({
-                x: block.body.position.x,
-                y: block.body.position.y,
-                color: colors.border,
-                tick: 0,
-              });
+          gs.chainDepth = 0; // reset chain for this hit
+          gs.now = performance.now();
 
-              // Score: higher atomic number = more points
-              const points = block.element.atomicNumber * 10;
-              scoreRef.current += points;
-              setScore(scoreRef.current);
-              setBlocksLeft(
-                blocksRef.current.filter((b) => b.alive).length
-              );
+          // Sync paddle pos into gs
+          if (paddleRef.current) {
+            gs.paddle.x = paddleRef.current.position.x;
+            gs.paddle.y = paddleRef.current.position.y;
+          }
+
+          blk.hp -= 1;
+          if (blk.hp <= 0 && blk.breakable) {
+            gs.destroyBlock(blk);
+          } else if (!blk.breakable) {
+            // indestructible – still trigger effect (e.g. Ne bounce)
+            executeEffect(blk.effect, blk, gs);
+          } else {
+            // damaged but not dead – trigger effect for some types
+            if (blk.effect === "sharp_reflect") {
+              executeEffect(blk.effect, blk, gs);
             }
           }
+          syncUI();
         }
       }
     });
 
-    // ---- Rendering loop ----
+    // ══════════════════════════════════════════════════════
+    //  Render loop
+    // ══════════════════════════════════════════════════════
     const render = () => {
-      ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+      ctx.clearRect(0, 0, GW, GH);
 
-      // Background
+      // BG
       ctx.fillStyle = "#0f0f1a";
-      ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+      ctx.fillRect(0, 0, GW, GH);
 
-      // Subtle grid
-      ctx.strokeStyle = "rgba(99, 102, 241, 0.06)";
+      // Grid
+      ctx.strokeStyle = "rgba(99,102,241,0.06)";
       ctx.lineWidth = 1;
-      for (let x = 0; x < GAME_WIDTH; x += 40) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, GAME_HEIGHT);
-        ctx.stroke();
-      }
-      for (let y = 0; y < GAME_HEIGHT; y += 40) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(GAME_WIDTH, y);
-        ctx.stroke();
-      }
+      for (let x = 0; x < GW; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GH); ctx.stroke(); }
+      for (let y = 0; y < GH; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(GW, y); ctx.stroke(); }
 
-      // Border glow
+      // Border
       ctx.shadowBlur = 15;
-      ctx.shadowColor = "rgba(99, 102, 241, 0.4)";
-      ctx.strokeStyle = "rgba(99, 102, 241, 0.3)";
+      ctx.shadowColor = "rgba(99,102,241,0.4)";
+      ctx.strokeStyle = "rgba(99,102,241,0.3)";
       ctx.lineWidth = 2;
-      ctx.strokeRect(1, 1, GAME_WIDTH - 2, GAME_HEIGHT - 2);
+      ctx.strokeRect(1, 1, GW - 2, GH - 2);
       ctx.shadowBlur = 0;
 
-      // ---- Draw blocks ----
-      for (const block of blocksRef.current) {
-        if (!block.alive) continue;
+      // ── VFX behind blocks ──
+      vfx.update();
+      vfx.render(ctx, GW, GH);
 
-        const { element, hp } = block;
-        const pos = block.body.position;
-        const bx = pos.x - BLOCK_WIDTH / 2;
-        const by = pos.y - BLOCK_HEIGHT / 2;
+      // ── Blocks ──
+      for (const blk of blocksRef.current) {
+        if (!blk.alive) continue;
+        const el = ELEMENTS.find((e) => e.atomicNumber === blk.id)!;
+        const colors = GROUP_COLORS[el.group];
+        const bx = blk.x - BW / 2;
+        const by = blk.y - BH / 2;
 
-        const isDamaged = element.group === "other" && hp === 1;
-        const colors = isDamaged
-          ? OTHER_DAMAGED_COLORS
-          : GROUP_COLORS[element.group];
+        // Frozen overlay tint
+        const isFrozen = blk.frozen;
 
-        // Block glow
-        ctx.shadowBlur = element.group === "noble-gas" ? 15 : 8;
-        ctx.shadowColor = colors.glow;
+        // Glow
+        ctx.shadowBlur = blk.group === "boss" ? 18 : 8;
+        ctx.shadowColor = isFrozen ? "rgba(56,189,248,0.6)" : colors.glow;
 
-        // Block fill
-        ctx.fillStyle = colors.fill;
-        const r = 3;
-        ctx.beginPath();
-        ctx.moveTo(bx + r, by);
-        ctx.lineTo(bx + BLOCK_WIDTH - r, by);
-        ctx.quadraticCurveTo(bx + BLOCK_WIDTH, by, bx + BLOCK_WIDTH, by + r);
-        ctx.lineTo(bx + BLOCK_WIDTH, by + BLOCK_HEIGHT - r);
-        ctx.quadraticCurveTo(
-          bx + BLOCK_WIDTH,
-          by + BLOCK_HEIGHT,
-          bx + BLOCK_WIDTH - r,
-          by + BLOCK_HEIGHT
-        );
-        ctx.lineTo(bx + r, by + BLOCK_HEIGHT);
-        ctx.quadraticCurveTo(bx, by + BLOCK_HEIGHT, bx, by + BLOCK_HEIGHT - r);
-        ctx.lineTo(bx, by + r);
-        ctx.quadraticCurveTo(bx, by, bx + r, by);
-        ctx.closePath();
+        // Fill
+        ctx.fillStyle = isFrozen ? "#0ea5e9" : colors.fill;
+        roundRect(ctx, bx, by, BW, BH, 3);
         ctx.fill();
 
-        // Block border
+        // Border
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = colors.border;
+        ctx.strokeStyle = isFrozen ? "#38bdf8" : colors.border;
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Crack lines for damaged "other" blocks
-        if (isDamaged) {
-          ctx.strokeStyle = "rgba(161, 161, 170, 0.5)";
+        // Durability indicator for multi-hp blocks
+        if (blk.hp > 1) {
+          ctx.fillStyle = "rgba(255,255,255,0.15)";
+          const hpPct = blk.hp / el.durability;
+          ctx.fillRect(bx + 1, by + BH - 3, (BW - 2) * hpPct, 2);
+        }
+
+        // Crack for damaged
+        if (blk.hp === 1 && el.durability > 1) {
+          ctx.strokeStyle = "rgba(255,255,255,0.25)";
           ctx.lineWidth = 1;
           ctx.beginPath();
-          ctx.moveTo(bx + BLOCK_WIDTH * 0.3, by);
-          ctx.lineTo(bx + BLOCK_WIDTH * 0.5, by + BLOCK_HEIGHT * 0.5);
-          ctx.lineTo(bx + BLOCK_WIDTH * 0.7, by + BLOCK_HEIGHT);
+          ctx.moveTo(bx + BW * 0.3, by);
+          ctx.lineTo(bx + BW * 0.5, by + BH * 0.5);
+          ctx.lineTo(bx + BW * 0.7, by + BH);
           ctx.stroke();
         }
 
-        // Atomic number (top-left, tiny)
+        // Atomic number
         ctx.fillStyle = colors.text;
         ctx.globalAlpha = 0.5;
         ctx.font = "bold 7px sans-serif";
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
-        ctx.fillText(String(element.atomicNumber), bx + 2, by + 2);
+        ctx.fillText(String(el.atomicNumber), bx + 2, by + 2);
         ctx.globalAlpha = 1;
 
-        // Element symbol (center)
+        // Symbol
         ctx.fillStyle = colors.text;
         ctx.font = "bold 13px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(element.symbol, pos.x, pos.y + 2);
-      }
+        ctx.fillText(el.symbol, blk.x, blk.y + 2);
 
-      // ---- Destroy effects (expanding ring) ----
-      const effects = destroyEffectsRef.current;
-      for (let i = effects.length - 1; i >= 0; i--) {
-        const eff = effects[i];
-        eff.tick += 1;
-        const progress = eff.tick / 20;
-        if (progress >= 1) {
-          effects.splice(i, 1);
-          continue;
+        // Boss pulsing border
+        if (blk.group === "boss") {
+          const t = performance.now() / 500;
+          ctx.strokeStyle = `rgba(251,146,60,${0.3 + Math.sin(t) * 0.2})`;
+          ctx.lineWidth = 2;
+          roundRect(ctx, bx - 1, by - 1, BW + 2, BH + 2, 4);
+          ctx.stroke();
         }
-        const radius = BLOCK_WIDTH * 0.5 + progress * BLOCK_WIDTH;
-        ctx.strokeStyle = eff.color;
-        ctx.globalAlpha = 1 - progress;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(eff.x, eff.y, radius, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
       }
 
-      // ---- Draw paddle ----
+      // ── Trajectory guide ──
+      if (performance.now() < trajectoryEndRef.current && ballRef.current && launchedRef.current) {
+        const b = ballRef.current;
+        let tx = b.position.x, ty = b.position.y;
+        let tvx = b.velocity.x, tvy = b.velocity.y;
+        ctx.strokeStyle = "rgba(167,139,250,0.3)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        let bounces = 0;
+        for (let step = 0; step < 200 && bounces < trajectoryBouncesRef.current; step++) {
+          tx += tvx;
+          ty += tvy;
+          if (tx <= BALL_R || tx >= GW - BALL_R) { tvx = -tvx; bounces++; }
+          if (ty <= BALL_R) { tvy = -tvy; bounces++; }
+          ctx.lineTo(tx, ty);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // ── Paddle ──
       if (paddleRef.current) {
         const p = paddleRef.current;
-        const px = p.position.x - PADDLE_WIDTH / 2;
-        const py = p.position.y - PADDLE_HEIGHT / 2;
+        const pw = paddleWRef.current;
+        const px = p.position.x - pw / 2;
+        const py = p.position.y - PADDLE_H / 2;
 
         ctx.shadowBlur = 20;
-        ctx.shadowColor = "rgba(99, 102, 241, 0.6)";
-
-        const grad = ctx.createLinearGradient(px, py, px, py + PADDLE_HEIGHT);
+        ctx.shadowColor = "rgba(99,102,241,0.6)";
+        const grad = ctx.createLinearGradient(px, py, px, py + PADDLE_H);
         grad.addColorStop(0, "#818cf8");
         grad.addColorStop(1, "#6366f1");
         ctx.fillStyle = grad;
-
-        const r = 7;
-        ctx.beginPath();
-        ctx.moveTo(px + r, py);
-        ctx.lineTo(px + PADDLE_WIDTH - r, py);
-        ctx.quadraticCurveTo(
-          px + PADDLE_WIDTH,
-          py,
-          px + PADDLE_WIDTH,
-          py + r
-        );
-        ctx.lineTo(px + PADDLE_WIDTH, py + PADDLE_HEIGHT - r);
-        ctx.quadraticCurveTo(
-          px + PADDLE_WIDTH,
-          py + PADDLE_HEIGHT,
-          px + PADDLE_WIDTH - r,
-          py + PADDLE_HEIGHT
-        );
-        ctx.lineTo(px + r, py + PADDLE_HEIGHT);
-        ctx.quadraticCurveTo(
-          px,
-          py + PADDLE_HEIGHT,
-          px,
-          py + PADDLE_HEIGHT - r
-        );
-        ctx.lineTo(px, py + r);
-        ctx.quadraticCurveTo(px, py, px + r, py);
-        ctx.closePath();
+        roundRect(ctx, px, py, pw, PADDLE_H, 7);
         ctx.fill();
         ctx.shadowBlur = 0;
       }
 
-      // ---- Draw ball ----
+      // ── Ball ──
       if (ballRef.current) {
         const b = ballRef.current;
+        const br = ballRadiusRef.current;
+
+        // Trail damage visual
+        if (gs.ball.trailDamage && performance.now() < gs.ball.trailEnd) {
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = "rgba(249,115,22,0.6)";
+          ctx.fillStyle = "rgba(249,115,22,0.15)";
+          ctx.beginPath();
+          ctx.arc(b.position.x, b.position.y, br + 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
 
         ctx.shadowBlur = 25;
-        ctx.shadowColor = "rgba(244, 114, 182, 0.8)";
-
-        const ballGrad = ctx.createRadialGradient(
-          b.position.x - 2,
-          b.position.y - 2,
-          0,
-          b.position.x,
-          b.position.y,
-          BALL_RADIUS
+        ctx.shadowColor = "rgba(244,114,182,0.8)";
+        const bg = ctx.createRadialGradient(
+          b.position.x - 2, b.position.y - 2, 0,
+          b.position.x, b.position.y, br,
         );
-        ballGrad.addColorStop(0, "#fbbf24");
-        ballGrad.addColorStop(1, "#f472b6");
-        ctx.fillStyle = ballGrad;
-
+        bg.addColorStop(0, "#fbbf24");
+        bg.addColorStop(1, "#f472b6");
+        ctx.fillStyle = bg;
         ctx.beginPath();
-        ctx.arc(b.position.x, b.position.y, BALL_RADIUS, 0, Math.PI * 2);
+        ctx.arc(b.position.x, b.position.y, br, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
       }
 
-      animFrameRef.current = requestAnimationFrame(render);
+      animRef.current = requestAnimationFrame(render);
     };
+    animRef.current = requestAnimationFrame(render);
 
-    animFrameRef.current = requestAnimationFrame(render);
+    // ── Input ──
+    const getX = (cx: number) => {
+      const r = canvas.getBoundingClientRect();
+      return (cx - r.left) * (GW / r.width);
+    };
+    const movePad = (x: number) => {
+      if (!paddleRef.current || goRef.current || clearRef.current) return;
+      const pw = paddleWRef.current;
+      const cx = Math.max(pw / 2, Math.min(GW - pw / 2, x));
+      Matter.Body.setPosition(paddleRef.current, { x: cx, y: paddleRef.current.position.y });
+    };
+    const onMM = (e: MouseEvent) => movePad(getX(e.clientX));
+    const onMD = (e: MouseEvent) => { movePad(getX(e.clientX)); if (!launchedRef.current && !goRef.current && !clearRef.current) launchBall(); };
+    const onTS = (e: TouchEvent) => {
+      e.preventDefault(); draggingRef.current = true;
+      movePad(getX(e.touches[0].clientX));
+      if (!launchedRef.current && !goRef.current && !clearRef.current) launchBall();
+    };
+    const onTM = (e: TouchEvent) => { e.preventDefault(); if (draggingRef.current) movePad(getX(e.touches[0].clientX)); };
+    const onTE = (e: TouchEvent) => { e.preventDefault(); draggingRef.current = false; };
 
-    // ---- Input handlers ----
-    const getCanvasX = (clientX: number) => {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = GAME_WIDTH / rect.width;
-      return (clientX - rect.left) * scaleX;
-    };
-
-    const movePaddle = (x: number) => {
-      if (!paddleRef.current || gameOverRef.current) return;
-      const clampedX = Math.max(
-        PADDLE_WIDTH / 2,
-        Math.min(GAME_WIDTH - PADDLE_WIDTH / 2, x)
-      );
-      Matter.Body.setPosition(paddleRef.current, {
-        x: clampedX,
-        y: paddleRef.current.position.y,
-      });
-      lastMouseXRef.current = clampedX;
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      movePaddle(getCanvasX(e.clientX));
-    };
-    const onMouseDown = (e: MouseEvent) => {
-      movePaddle(getCanvasX(e.clientX));
-      if (!launchedRef.current && !gameOverRef.current) {
-        launchBall();
-      }
-    };
-
-    const onTouchStart = (e: TouchEvent) => {
-      e.preventDefault();
-      isDraggingRef.current = true;
-      const touch = e.touches[0];
-      movePaddle(getCanvasX(touch.clientX));
-      if (!launchedRef.current && !gameOverRef.current) {
-        launchBall();
-      }
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      e.preventDefault();
-      if (!isDraggingRef.current) return;
-      const touch = e.touches[0];
-      movePaddle(getCanvasX(touch.clientX));
-    };
-    const onTouchEnd = (e: TouchEvent) => {
-      e.preventDefault();
-      isDraggingRef.current = false;
-    };
-
-    canvas.addEventListener("mousemove", onMouseMove);
-    canvas.addEventListener("mousedown", onMouseDown);
-    canvas.addEventListener("touchstart", onTouchStart, { passive: false });
-    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
-    canvas.addEventListener("touchend", onTouchEnd, { passive: false });
+    canvas.addEventListener("mousemove", onMM);
+    canvas.addEventListener("mousedown", onMD);
+    canvas.addEventListener("touchstart", onTS, { passive: false });
+    canvas.addEventListener("touchmove", onTM, { passive: false });
+    canvas.addEventListener("touchend", onTE, { passive: false });
 
     return () => {
-      cancelAnimationFrame(animFrameRef.current);
+      cancelAnimationFrame(animRef.current);
       Matter.Runner.stop(runner);
       Matter.Engine.clear(engine);
-      canvas.removeEventListener("mousemove", onMouseMove);
-      canvas.removeEventListener("mousedown", onMouseDown);
-      canvas.removeEventListener("touchstart", onTouchStart);
-      canvas.removeEventListener("touchmove", onTouchMove);
-      canvas.removeEventListener("touchend", onTouchEnd);
+      canvas.removeEventListener("mousemove", onMM);
+      canvas.removeEventListener("mousedown", onMD);
+      canvas.removeEventListener("touchstart", onTS);
+      canvas.removeEventListener("touchmove", onTM);
+      canvas.removeEventListener("touchend", onTE);
     };
-  }, [launchBall, resetBall, createBlocks]);
+  }, [launchBall, resetBall, createBlocks, syncUI]);
+
+  // ── Group legend data ──
+  const legend: { label: string; color: string }[] = [
+    { label: "Attack", color: "#dc2626" },
+    { label: "Defense", color: "#3b82f6" },
+    { label: "Utility", color: "#8b5cf6" },
+    { label: "Debuff", color: "#65a30d" },
+    { label: "Score", color: "#eab308" },
+    { label: "Boss", color: "#ea580c" },
+  ];
 
   return (
-    <div className="flex flex-col items-center gap-4 select-none">
-      {/* Header */}
+    <div className="flex flex-col items-center gap-3 select-none py-4">
+      {/* Title */}
       <h1 className="text-3xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
         PERIODIC BREAKER
       </h1>
 
       {/* HUD */}
-      <div className="flex items-center justify-between w-full max-w-[480px] px-2">
+      <div className="flex items-center justify-between w-full max-w-[480px] px-2 text-sm">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-zinc-400 uppercase tracking-wide">
-            Lives
-          </span>
+          <span className="text-zinc-400 uppercase tracking-wide">Lives</span>
           <div className="flex gap-1">
-            {Array.from({ length: INITIAL_LIVES }).map((_, i) => (
-              <span
-                key={i}
-                className={`w-3 h-3 rounded-full transition-colors duration-300 ${
-                  i < lives
-                    ? "bg-pink-500 shadow-[0_0_8px_rgba(244,114,182,0.6)]"
-                    : "bg-zinc-700"
-                }`}
-              />
+            {Array.from({ length: LIVES }).map((_, i) => (
+              <span key={i} className={`w-3 h-3 rounded-full transition-colors duration-300 ${
+                i < lives ? "bg-pink-500 shadow-[0_0_8px_rgba(244,114,182,0.6)]" : "bg-zinc-700"
+              }`} />
             ))}
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <span className="text-sm text-zinc-400 uppercase tracking-wide">
-              Blocks
-            </span>
-            <span className="text-lg font-mono font-bold text-emerald-400">
-              {blocksLeft}
-            </span>
+            <span className="text-zinc-400 uppercase tracking-wide">Elements</span>
+            <span className="text-lg font-mono font-bold text-emerald-400">{blocksLeft}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-sm text-zinc-400 uppercase tracking-wide">
-              Score
-            </span>
-            <span className="text-lg font-mono font-bold text-indigo-400">
-              {score}
-            </span>
+            <span className="text-zinc-400 uppercase tracking-wide">Score</span>
+            <span className="text-lg font-mono font-bold text-indigo-400">{score}</span>
           </div>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap justify-center gap-3 text-xs max-w-[480px]">
-        <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-sm bg-red-600" /> Alkali
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-sm bg-orange-600" /> Alkaline
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-sm bg-sky-500" /> Noble Gas
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-sm bg-lime-600" /> Halogen
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-sm bg-zinc-600" /> Other (×2)
-        </span>
+      <div className="flex flex-wrap justify-center gap-2.5 text-xs max-w-[480px]">
+        {legend.map((l) => (
+          <span key={l.label} className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: l.color }} />
+            {l.label}
+          </span>
+        ))}
       </div>
 
       {/* Canvas */}
       <div className="relative rounded-lg overflow-hidden shadow-[0_0_40px_rgba(99,102,241,0.15)]">
-        <canvas
-          ref={canvasRef}
-          width={GAME_WIDTH}
-          height={GAME_HEIGHT}
+        <canvas ref={canvasRef} width={GW} height={GH}
           className="block cursor-none max-w-full"
-          style={{ aspectRatio: `${GAME_WIDTH}/${GAME_HEIGHT}` }}
-        />
+          style={{ aspectRatio: `${GW}/${GH}` }} />
 
-        {/* Overlay: Start / Game Over */}
-        {(!launched || gameOver) && (
+        {/* Overlays */}
+        {(!launched || gameOver || stageClear) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm">
-            {gameOver ? (
+            {stageClear ? (
               <>
-                <p className="text-4xl font-bold text-red-400 mb-2">
-                  GAME OVER
-                </p>
-                <p className="text-zinc-400 mb-4">
-                  Final Score:{" "}
-                  <span className="text-indigo-400 font-bold">{score}</span>
-                </p>
-                <button
-                  onClick={restartGame}
-                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)]"
-                >
+                <p className="text-3xl font-bold text-emerald-400 mb-1">Stage 1 Clear!</p>
+                <p className="text-zinc-300 mb-4">20번 칼슘까지 정복했습니다</p>
+                <p className="text-zinc-400 mb-4">Final Score: <span className="text-indigo-400 font-bold">{score}</span></p>
+                <button onClick={restartGame}
+                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                  다시 시작
+                </button>
+              </>
+            ) : gameOver ? (
+              <>
+                <p className="text-4xl font-bold text-red-400 mb-2">GAME OVER</p>
+                <p className="text-zinc-400 mb-4">Final Score: <span className="text-indigo-400 font-bold">{score}</span></p>
+                <button onClick={restartGame}
+                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)]">
                   RESTART
                 </button>
               </>
             ) : (
               <>
-                <p className="text-xl text-zinc-300 mb-1 animate-pulse">
-                  Click or Tap to Launch
-                </p>
-                <p className="text-sm text-zinc-500">
-                  Move mouse or drag to control paddle
-                </p>
+                <p className="text-xl text-zinc-300 mb-1 animate-pulse">Click or Tap to Launch</p>
+                <p className="text-sm text-zinc-500">Move mouse or drag to control paddle</p>
               </>
             )}
           </div>
