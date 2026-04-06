@@ -479,13 +479,10 @@ export default function Game() {
             x: Math.cos(angle) * sp,
             y: Math.sin(angle) * sp,
           });
-          // Radioactive pierce: survives 1st paddle hit, resets on 2nd
+          // Radioactive pierce: resets immediately on paddle hit
           if (gs.ball.pierce) {
-            gs.ball.pierceHits += 1;
-            if (gs.ball.pierceHits >= 2) {
-              gs.ball.pierce = false;
-              gs.ball.pierceHits = 0;
-            }
+            gs.ball.pierce = false;
+            gs.ball.pierceHits = 0;
           }
           continue;
         }
