@@ -657,6 +657,10 @@ export default function Game() {
           Matter.Body.setVelocity(b, { x: 0, y: 0 });
           launchedRef.current = false;
           setLaunched(false);
+          // Reset pierce and metal on respawn
+          gs.ball.pierce = false;
+          gs.ball.metal = false;
+          b.collisionFilter.mask = CAT.WALL | CAT.PADDLE | CAT.BLOCK;
         }
         return;
       }
