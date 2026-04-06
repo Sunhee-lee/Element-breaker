@@ -322,8 +322,8 @@ export default function Game() {
           text: getFlavorText(blk.id),
           x: GW / 2,
           y: ty,
-          life: 120,
-          maxLife: 120,
+          life: 180,
+          maxLife: 180,
           color: colors?.border ?? "#ffffff",
         });
         // trigger this block's own effect (no area damage possible)
@@ -728,7 +728,7 @@ export default function Game() {
       for (let i = fts.length - 1; i >= 0; i--) {
         const ft = fts[i];
         ft.life -= 1;
-        ft.y -= 0.3; // float upward slowly
+        ft.y -= 0.2; // float upward very slowly
         if (ft.life <= 0) { fts.splice(i, 1); continue; }
         const progress = ft.life / ft.maxLife;
         // Fade in for first 20%, stay, fade out last 30%

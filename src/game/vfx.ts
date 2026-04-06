@@ -83,6 +83,47 @@ export class VfxManager {
         this.spawnExplosion(x, y, "#fbbf24", "#ffffff", (extra?.radius as number ?? 170) * 0.5);
         this.flashes.push({ color: "rgba(251,191,36,0.15)", alpha: 0.4, decay: 0.03 });
         break;
+      // ── Element-specific colored explosions ──
+      case "explosion_hydrogen":
+        this.spawnExplosion(x, y, "#60a5fa", "#93c5fd", 80);
+        this.spawnExplosion(x, y, "#ffffff", "#bfdbfe", 50);
+        this.spawnRing(x, y, "#60a5fa", 40);
+        this.flashes.push({ color: "rgba(96,165,250,0.15)", alpha: 0.3, decay: 0.025 });
+        break;
+      case "explosion_lithium":
+        this.spawnExplosion(x, y, "#dc2626", "#f87171", 90);
+        this.spawnExplosion(x, y, "#fca5a5", "#ffffff", 55);
+        this.spawnRing(x, y, "#dc2626", 45);
+        this.flashes.push({ color: "rgba(220,38,38,0.12)", alpha: 0.3, decay: 0.025 });
+        break;
+      case "explosion_sodium":
+        this.spawnExplosion(x, y, "#eab308", "#fbbf24", 110);
+        this.spawnExplosion(x, y, "#fde047", "#ffffff", 70);
+        this.spawnRing(x, y, "#eab308", 55);
+        this.flashes.push({ color: "rgba(234,179,8,0.2)", alpha: 0.45, decay: 0.02 });
+        break;
+      case "explosion_potassium":
+        this.spawnExplosion(x, y, "#a855f7", "#c084fc", 120);
+        this.spawnExplosion(x, y, "#e9d5ff", "#ffffff", 75);
+        this.spawnRing(x, y, "#a855f7", 60);
+        this.flashes.push({ color: "rgba(168,85,247,0.15)", alpha: 0.4, decay: 0.02 });
+        break;
+      case "explosion_rubidium":
+        this.spawnExplosion(x, y, "#dc2626", "#f87171", 130);
+        this.spawnExplosion(x, y, "#fbbf24", "#fef08a", 80);
+        this.spawnRing(x, y, "#ef4444", 65);
+        this.flashes.push({ color: "rgba(220,38,38,0.15)", alpha: 0.4, decay: 0.02 });
+        break;
+      case "explosion_cesium":
+        this.spawnExplosion(x, y, "#2563eb", "#60a5fa", 140);
+        this.spawnExplosion(x, y, "#93c5fd", "#ffffff", 90);
+        this.spawnRing(x, y, "#3b82f6", 70);
+        this.flashes.push({ color: "rgba(37,99,235,0.2)", alpha: 0.5, decay: 0.018 });
+        break;
+      case "paddle_grow":
+        this.spawnSparks(x, y, 10, "#4ade80");
+        this.spawnRing(x, y, "#22c55e", 30);
+        break;
       case "chain_lightning":
         this.spawnLightning(x, y, extra?.tx as number ?? x, extra?.ty as number ?? y);
         break;

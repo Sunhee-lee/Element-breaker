@@ -24,7 +24,10 @@ export type VfxKey =
   | "trajectory_line" | "trail_fire" | "corrosion_green" | "gas_yellow"
   | "paddle_shrink" | "freeze_ice" | "flash_white" | "boss_shatter"
   | "metal_reflect" | "dense_block" | "radiation_burst" | "rare_sparkle"
-  | "conduct_pulse" | "heavy_impact" | "score_glow" | "phase_through";
+  | "conduct_pulse" | "heavy_impact" | "score_glow" | "phase_through"
+  | "explosion_hydrogen" | "explosion_lithium" | "explosion_sodium"
+  | "explosion_potassium" | "explosion_rubidium" | "explosion_cesium"
+  | "paddle_grow";
 
 export interface EffectParams {
   radius?: number;
@@ -218,11 +221,13 @@ type PartialOverride = Partial<Pick<ElementDef, "group" | "effect" | "vfx" | "du
 
 const OVERRIDES: Record<number, PartialOverride> = {
   // ── ATTACK ──
-  // Explosive (H + alkali metals) — explosion VFX on destroy
-  1:  { group: "attack",  effect: "explosion",           vfx: "explosion_red" },
-  3:  { group: "attack",  effect: "explosion",           vfx: "explosion_red" },
-  11: { group: "attack",  effect: "explosion",           vfx: "explosion_orange" },
-  19: { group: "attack",  effect: "explosion",           vfx: "fast_explosion" },
+  // Explosive (H + alkali metals) — element-specific colored explosions
+  1:  { group: "attack",  effect: "explosion",           vfx: "explosion_hydrogen" },    // 파란-흰 (수소 불꽃)
+  3:  { group: "attack",  effect: "explosion",           vfx: "explosion_lithium" },     // 진홍색 (리튬 불꽃)
+  11: { group: "attack",  effect: "explosion",           vfx: "explosion_sodium" },      // 노란색 (나트륨 불꽃)
+  19: { group: "attack",  effect: "explosion",           vfx: "explosion_potassium" },   // 보라색 (칼륨 불꽃)
+  37: { group: "attack",  effect: "explosion",           vfx: "explosion_rubidium" },    // 붉은-주황 (루비듐 불꽃)
+  55: { group: "attack",  effect: "explosion",           vfx: "explosion_cesium" },      // 파란색 (세슘 불꽃)
   // Radioactive — ball goes neon + pierce until paddle
   92: { group: "attack",  effect: "radioactive_pierce",  vfx: "radiation_burst",  rarity: "legendary", durability: 2 },
   94: { group: "attack",  effect: "radioactive_pierce",  vfx: "radiation_burst",  rarity: "legendary", durability: 2 },
@@ -259,10 +264,12 @@ const OVERRIDES: Record<number, PartialOverride> = {
 
   // ── SCORE ──
   7:  { group: "score", effect: "freeze_score", vfx: "freeze_ice",  params: { multiplier: 1.5, duration: 3000 } },
-  12: { group: "score", effect: "flash_bonus",  vfx: "flash_white", params: { bonus: 500 } },
+  12: { group: "utility", effect: "paddle_grow", vfx: "paddle_grow", params: { scale: 1.3, duration: 5000 } }, // Mg — 패들 확장
+  38: { group: "utility", effect: "paddle_grow", vfx: "paddle_grow", params: { scale: 1.25, duration: 4000 } }, // Sr — 패들 확장
+  56: { group: "utility", effect: "paddle_grow", vfx: "paddle_grow", params: { scale: 1.35, duration: 5000 } }, // Ba — 패들 확장 (더 큼)
   79: { group: "score", effect: "flash_bonus",  vfx: "flash_white", rarity: "legendary", params: { bonus: 2000 } },
 
-  // Ca — was boss, now alkaline earth defense
+  // Ca — alkaline earth defense
   20: { group: "defense", effect: "shard_splash", vfx: "shard_splash", durability: 2, rarity: "uncommon", params: { shardCount: 6, range: 40 } },
 };
 

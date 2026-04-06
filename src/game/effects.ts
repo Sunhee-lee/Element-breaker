@@ -101,10 +101,10 @@ register("radioactive_pierce", (block, state) => {
   state.spawnVfx("radiation_burst", block.x, block.y, { radius: 40 });
 });
 
-/** Explosive: visual explosion burst (no area damage) */
+/** Explosive: element-specific colored explosion (no area damage) */
 register("explosion", (block, state) => {
-  state.spawnVfx("explosion_red", block.x, block.y, { radius: 50 });
-  state.spawnVfx("fast_explosion", block.x, block.y, { radius: 30 });
+  // Use the block's own VFX key for element-specific colors
+  state.spawnVfx(block.vfx, block.x, block.y);
 });
 
 /** Ball deals double damage to blocks */
@@ -257,6 +257,19 @@ register("state_change", (block, state) => {
     key: "state_change",
     endTime: state.now + dur,
     revert: () => { state.ball.speed = state.ball.baseSpeed; },
+  });
+});
+
+/** Paddle grows wider temporarily */
+register("paddle_grow", (block, state) => {
+  const scale = block.params.scale ?? 1.3;
+  const dur = block.params.duration ?? 4000;
+  state.paddle.width = state.paddle.baseWidth * scale;
+  state.spawnVfx("paddle_grow", block.x, block.y);
+  state.timedEffects.push({
+    key: "paddle_grow",
+    endTime: state.now + dur,
+    revert: () => { state.paddle.width = state.paddle.baseWidth; },
   });
 });
 
