@@ -1,5 +1,5 @@
 // ============================================================
-// Periodic Breaker – Effect System
+// Element Breaker – Effect System
 // Pure-logic handlers. NO area damage — blocks are only
 // destroyed by the ball. Effects modify ball/paddle/score.
 // ============================================================

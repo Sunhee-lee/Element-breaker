@@ -1,5 +1,5 @@
 // ============================================================
-// Periodic Breaker – Visual Effects System
+// Element Breaker – Visual Effects System
 // Decoupled from game logic. Receives spawn commands and
 // renders particles / flashes / overlays each frame.
 // ============================================================

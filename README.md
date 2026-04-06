@@ -1,4 +1,4 @@
-# Periodic Breaker
+# Element Breaker
 
 A brick-breaker game where every brick is an element from the periodic table, each with unique gameplay effects.
 

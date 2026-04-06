@@ -1,5 +1,5 @@
 // ============================================================
-// Periodic Breaker – Sound System (Web Audio API)
+// Element Breaker – Sound System (Web Audio API)
 // Procedural synth sounds — no audio files needed.
 // ============================================================
 

@@ -1,5 +1,5 @@
 // ============================================================
-// Periodic Breaker – Element Block Builder
+// Element Breaker – Element Block Builder
 //
 // 4-layer architecture:
 //   1. elementBaseData   → pure periodic table data (118 elements)
