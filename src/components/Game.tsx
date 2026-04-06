@@ -84,12 +84,14 @@ export default function Game() {
   const [stageClear, setStageClear] = useState(false);
   const [launched, setLaunched] = useState(false);
   const [blocksLeft, setBlocksLeft] = useState(DESTROYABLE_COUNT);
+  const [paused, setPaused] = useState(false);
 
   const livesRef = useRef(LIVES);
   const scoreRef = useRef(0);
   const goRef = useRef(false);
   const launchedRef = useRef(false);
   const clearRef = useRef(false);
+  const pausedRef = useRef(false);
   const ballSpeedRef = useRef(BASE_SPEED);
   const ballRadiusRef = useRef(BALL_R);
   const paddleWRef = useRef(PADDLE_W);
@@ -192,6 +194,31 @@ export default function Game() {
     setLives(LIVES);
     resetBall();
   }, [resetBall, createBlocks]);
+
+  const togglePause = useCallback(() => {
+    if (goRef.current || clearRef.current || !launchedRef.current) return;
+    const next = !pausedRef.current;
+    pausedRef.current = next;
+    setPaused(next);
+    const runner = runnerRef.current;
+    if (!runner) return;
+    if (next) {
+      Matter.Runner.stop(runner);
+    } else if (engineRef.current) {
+      Matter.Runner.run(runner, engineRef.current);
+    }
+  }, []);
+
+  // Keyboard: Escape or P to toggle pause
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "p" || e.key === "P") {
+        togglePause();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [togglePause]);
 
   // ══════════════════════════════════════════════════════
   //  Main effect – physics, collision, rendering
@@ -707,6 +734,19 @@ export default function Game() {
             <span className="text-zinc-400 uppercase tracking-wide">Score</span>
             <span className="text-base sm:text-lg font-mono font-bold text-indigo-400">{score}</span>
           </div>
+          {launched && !gameOver && !stageClear && (
+            <button
+              onClick={togglePause}
+              className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 transition-colors text-zinc-300"
+              aria-label={paused ? "Resume" : "Pause"}
+            >
+              {paused ? (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><polygon points="3,1 12,7 3,13" /></svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="1" width="3.5" height="12" /><rect x="8.5" y="1" width="3.5" height="12" /></svg>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -725,6 +765,20 @@ export default function Game() {
         <canvas ref={canvasRef} width={GW} height={GH}
           className="block w-full h-auto cursor-none touch-none"
           style={{ aspectRatio: `${GW}/${GH}` }} />
+
+        {/* Pause overlay */}
+        {paused && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-10">
+            <p className="text-2xl sm:text-3xl font-bold text-zinc-200 mb-3">PAUSED</p>
+            <button
+              onClick={togglePause}
+              className="px-5 py-2 text-sm sm:text-base bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+            >
+              Resume
+            </button>
+            <p className="text-xs text-zinc-500 mt-2">Press ESC or P to resume</p>
+          </div>
+        )}
 
         {/* Overlays – pointer-events only on buttons, pass clicks to canvas */}
         {(!launched || gameOver || stageClear) && (
