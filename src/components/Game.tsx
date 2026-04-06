@@ -851,7 +851,7 @@ export default function Game() {
 
         ctx.globalAlpha = alpha;
         ctx.fillStyle = ft.color;
-        ctx.font = "bold 14px sans-serif";
+        ctx.font = "bold 14px Jua, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         // Shadow for readability
@@ -908,14 +908,6 @@ export default function Game() {
     };
   }, [launchBall, resetBall, createBlocks, syncUI, difficulty]);
 
-  // ── Group legend data ──
-  const legend: { label: string; color: string }[] = [
-    { label: "Attack", color: "#dc2626" },
-    { label: "Defense", color: "#3b82f6" },
-    { label: "Utility", color: "#8b5cf6" },
-    { label: "Debuff", color: "#65a30d" },
-    { label: "Score", color: "#eab308" },
-  ];
 
   // Difficulty select handler
   const startWithDifficulty = useCallback((diff: string) => {
@@ -932,8 +924,8 @@ export default function Game() {
   if (!difficulty) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-6 select-none px-4">
-        <h1 className="text-2xl sm:text-4xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-          PERIODIC BREAKER
+        <h1 className="text-2xl sm:text-4xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ fontFamily: "'Fredoka', sans-serif" }}>
+          Periodic Breaker
         </h1>
         <p className="text-zinc-400 text-sm sm:text-base">난이도를 선택하세요</p>
         <div className="flex gap-3">
@@ -954,8 +946,8 @@ export default function Game() {
   return (
     <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto">
       {/* Title */}
-      <h1 className="text-xl sm:text-3xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-        PERIODIC BREAKER
+      <h1 className="text-xl sm:text-3xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ fontFamily: "'Fredoka', sans-serif" }}>
+        Periodic Breaker
       </h1>
 
       {/* HUD */}
@@ -995,16 +987,6 @@ export default function Game() {
             </button>
           )}
         </div>
-      </div>
-
-      {/* Legend */}
-      <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2.5 text-[10px] sm:text-xs">
-        {legend.map((l) => (
-          <span key={l.label} className="flex items-center gap-0.5 sm:gap-1">
-            <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm" style={{ background: l.color }} />
-            {l.label}
-          </span>
-        ))}
       </div>
 
       {/* Canvas */}
