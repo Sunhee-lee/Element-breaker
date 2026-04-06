@@ -14,7 +14,7 @@ import { getFlavorText } from "@/game/elementFlavor";
 import { saveRank, getTopRanks, type RankEntry } from "@/game/firebase";
 import {
   sndPaddle, sndBlockBreak, sndExplosion, sndRadioactive,
-  sndCombo, sndPowerup, sndLifeLost,
+  sndCombo, sndPowerup, sndLifeLost, sndMetal,
   startBGM, stopBGM, setBGMVolume,
 } from "@/game/sound";
 
@@ -423,6 +423,7 @@ export default function Game() {
         trailDamage: false, trailEnd: 0, trailInterval: 120,
         pierce: false, pierceEnd: 0, pierceHits: 0,
         powerHit: false, powerHitEnd: 0,
+        metal: false,
       },
       paddle: {
         x: GW / 2, y: GH - 40,
@@ -462,8 +463,10 @@ export default function Game() {
         // Sound
         const isExplosive = blk.effect === "explosion";
         const isRadioactive = blk.effect === "radioactive_pierce";
+        const isMetal = blk.effect === "heavy_ball" || (blk.effect === "paddle_grow" && blk.id === 22);
         if (isExplosive) { sndExplosion(); }
         else if (isRadioactive) { sndRadioactive(); }
+        else if (isMetal) { sndMetal(); }
         else { sndBlockBreak(); }
         if (comboLevel >= 3) sndCombo(comboLevel);
         if (blk.effect === "paddle_grow") sndPowerup();
@@ -978,6 +981,7 @@ export default function Game() {
         }
 
         const isPiercing = gs.ball.pierce;
+        const isMetal = gs.ball.metal;
 
         // Neon glow aura when radioactive pierce is active
         if (isPiercing) {
@@ -993,6 +997,8 @@ export default function Game() {
         ctx.shadowBlur = 25;
         ctx.shadowColor = isPiercing
           ? "rgba(74,222,128,0.9)"
+          : isMetal
+          ? "rgba(148,163,184,0.8)"
           : "rgba(244,114,182,0.8)";
         const bg = ctx.createRadialGradient(
           b.position.x - 2, b.position.y - 2, 0,
@@ -1001,6 +1007,9 @@ export default function Game() {
         if (isPiercing) {
           bg.addColorStop(0, "#4ade80");
           bg.addColorStop(1, "#22c55e");
+        } else if (isMetal) {
+          bg.addColorStop(0, "#94a3b8"); // dark silver
+          bg.addColorStop(1, "#475569"); // darker steel
         } else {
           bg.addColorStop(0, "#fbbf24");
           bg.addColorStop(1, "#f472b6");
@@ -1206,7 +1215,7 @@ export default function Game() {
       </div>
 
       {/* Control bar — above canvas */}
-      {launched && (
+      {launched && !paused && (
         <div className="flex items-center justify-between w-full px-1 mb-1 text-xs">
           <div className="flex items-center gap-1">
             <button onClick={() => { stopBGM(); restartGame(); setDifficulty(null); }}
@@ -1350,7 +1359,20 @@ export default function Game() {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-xs text-emerald-400 mb-2">랭킹 등록 완료!</p>
+                  <div className="w-full max-w-[280px] mb-2">
+                    <p className="text-xs text-emerald-400 mb-1 text-center">랭킹 등록 완료!</p>
+                    <div className="bg-zinc-900 rounded border border-zinc-700 overflow-hidden">
+                      {rankings.map((r, i) => (
+                        <div key={i} className={`flex items-center justify-between px-2 py-1 text-[10px] ${r.name === playerName.trim() ? "bg-indigo-900/40" : ""}`}>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`font-bold w-4 ${i === 0 ? "text-yellow-400" : i === 1 ? "text-zinc-300" : i === 2 ? "text-orange-400" : "text-zinc-500"}`}>{i + 1}</span>
+                            <span className="text-zinc-200">{r.name}</span>
+                          </div>
+                          <span className="font-mono font-bold text-indigo-400">{r.score.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
                 <button onClick={restartGame}
                   className="px-5 py-2 text-sm sm:text-base bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)]">

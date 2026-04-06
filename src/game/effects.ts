@@ -40,6 +40,7 @@ export interface BallState {
   pierceHits: number; // counts paddle touches while piercing
   powerHit: boolean;
   powerHitEnd: number;
+  metal: boolean; // Fe/Ti metal ball visual
 }
 
 export interface PaddleState {
@@ -314,11 +315,16 @@ register("paddle_grow", (block, state) => {
   const scale = block.params.scale ?? 1.3;
   const dur = block.params.duration ?? 4000;
   state.paddle.width = state.paddle.baseWidth * scale;
+  // Ti (22) = metal ball visual
+  if (block.id === 22) state.ball.metal = true;
   state.spawnVfx("paddle_grow", block.x, block.y);
   pushTimedEffect(state, {
     key: "paddle_grow",
     endTime: state.now + dur,
-    revert: () => { state.paddle.width = state.paddle.baseWidth; },
+    revert: () => {
+      state.paddle.width = state.paddle.baseWidth;
+      if (block.id === 22) state.ball.metal = false;
+    },
   });
 });
 
@@ -446,12 +452,14 @@ register("heavy_ball", (block, state) => {
   const mult = block.params.slowMultiplier ?? 0.85;
   const dur = block.params.duration ?? 4000;
   state.ball.speed = state.ball.baseSpeed * mult;
-  state.ball.radius = state.ball.baseRadius * 1.15; // slightly bigger = heavier feel
+  state.ball.radius = state.ball.baseRadius * 1.15;
+  state.ball.metal = true;
   state.spawnVfx("heavy_impact", block.x, block.y);
   pushTimedEffect(state, {
     key: "heavy_ball",
     endTime: state.now + dur,
     revert: () => {
+      state.ball.metal = false;
       revertSpeed(state, "heavy_ball");
       revertSize(state, "heavy_ball");
     },
