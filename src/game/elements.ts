@@ -246,7 +246,10 @@ const OVERRIDES: Record<number, PartialOverride> = {
   88: { group: "attack",  effect: "radioactive_pierce", vfx: "radiation_burst" },
 
   // ── UTILITY ──
-  2:  { group: "utility",  effect: "ball_powerup",     vfx: "powerup_gold",    params: { sizeMultiplier: 1.8, duration: 10000 } }, // He — 헬륨풍선, 공이 커짐
+  2:  { group: "utility",  effect: "ball_powerup",     vfx: "powerup_gold",    params: { sizeMultiplier: 1.8, duration: 10000 } }, // He — 헬륨풍선
+  22: { group: "utility",  effect: "paddle_grow",      vfx: "paddle_grow",     durability: 2, params: { scale: 1.3, duration: 10000 } },  // Ti
+  26: { group: "utility",  effect: "paddle_grow",      vfx: "paddle_grow",     durability: 2, params: { scale: 1.35, duration: 10000 } }, // Fe
+  29: { group: "utility",  effect: "paddle_grow",      vfx: "paddle_grow",     rarity: "rare", params: { scale: 1.3, duration: 10000 } }, // Cu
   5:  { group: "utility",  effect: "slow_control",     vfx: "slow_blue",       params: { slowMultiplier: 0.75, duration: 1500 } },
   8:  { group: "utility",  effect: "ball_powerup",     vfx: "powerup_gold",    params: { sizeMultiplier: 1.3, duration: 2500 } },
   10: { group: "utility",  effect: "bounce",           vfx: "neon_bounce",     params: { bouncePower: 1.15 } },

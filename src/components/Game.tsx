@@ -906,7 +906,7 @@ export default function Game() {
       canvas.removeEventListener("touchmove", onTM);
       canvas.removeEventListener("touchend", onTE);
     };
-  }, [launchBall, resetBall, createBlocks, syncUI]);
+  }, [launchBall, resetBall, createBlocks, syncUI, difficulty]);
 
   // ── Group legend data ──
   const legend: { label: string; color: string }[] = [
@@ -937,14 +937,13 @@ export default function Game() {
         </h1>
         <p className="text-zinc-400 text-sm sm:text-base">난이도를 선택하세요</p>
         <div className="flex gap-3">
-          {([["easy", "Easy", "패들 130px", "#22c55e"],
-             ["normal", "Normal", "패들 100px", "#3b82f6"],
-             ["hard", "Hard", "패들 70px", "#ef4444"]] as const).map(([key, label, desc, color]) => (
+          {([["easy", "Easy", "#22c55e"],
+             ["normal", "Normal", "#3b82f6"],
+             ["hard", "Hard", "#ef4444"]] as const).map(([key, label, color]) => (
             <button key={key} onClick={() => startWithDifficulty(key)}
-              className="flex flex-col items-center gap-1 px-5 py-3 rounded-lg border border-zinc-700 hover:border-zinc-500 bg-zinc-900 hover:bg-zinc-800 transition-colors"
+              className="px-6 py-3 rounded-lg border border-zinc-700 hover:border-zinc-500 bg-zinc-900 hover:bg-zinc-800 transition-colors"
             >
               <span className="font-bold text-lg" style={{ color }}>{label}</span>
-              <span className="text-xs text-zinc-500">{desc}</span>
             </button>
           ))}
         </div>
