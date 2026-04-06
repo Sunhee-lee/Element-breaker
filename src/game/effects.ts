@@ -90,7 +90,7 @@ export function executeEffect(effectName: string, block: BlockRuntime, state: Ga
   if (fn) fn(block, state);
 }
 
-/** Replace existing timed effect with same key (no revert of old one) */
+/** Add timed effect. Same key = extend (remove old without revert). */
 function pushTimedEffect(state: GameState, effect: { key: string; endTime: number; revert: () => void }) {
   for (let i = state.timedEffects.length - 1; i >= 0; i--) {
     if (state.timedEffects[i].key === effect.key) {
@@ -98,6 +98,27 @@ function pushTimedEffect(state: GameState, effect: { key: string; endTime: numbe
     }
   }
   state.timedEffects.push(effect);
+}
+
+/** Check if a timed effect with given key is currently active */
+function hasActiveEffect(state: GameState, key: string): boolean {
+  return state.timedEffects.some(e => e.key === key && e.endTime > state.now);
+}
+
+const SPEED_KEYS = ["ball_speed", "slow_control", "heavy_block", "state_change", "slippery"];
+const SIZE_KEYS = ["ball_powerup", "conduct", "rare_support"];
+
+/** Revert speed only if no other speed effect is active */
+function revertSpeed(state: GameState, myKey: string) {
+  if (!SPEED_KEYS.some(k => k !== myKey && hasActiveEffect(state, k))) {
+    state.ball.speed = state.ball.baseSpeed;
+  }
+}
+/** Revert radius only if no other size effect is active */
+function revertSize(state: GameState, myKey: string) {
+  if (!SIZE_KEYS.some(k => k !== myKey && hasActiveEffect(state, k))) {
+    state.ball.radius = state.ball.baseRadius;
+  }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -156,7 +177,7 @@ register("ball_speed", (block, state) => {
   pushTimedEffect(state, {
     key: "ball_speed",
     endTime: state.now + dur,
-    revert: () => { state.ball.speed = state.ball.baseSpeed; },
+    revert: () => revertSpeed(state, "ball_speed"),
   });
 });
 
@@ -211,7 +232,7 @@ register("heavy_block", (block, state) => {
   pushTimedEffect(state, {
     key: "heavy_block",
     endTime: state.now + 2000,
-    revert: () => { state.ball.speed = state.ball.baseSpeed; },
+    revert: () => revertSpeed(state, "heavy_block"),
   });
 });
 
@@ -239,7 +260,7 @@ register("slow_control", (block, state) => {
   pushTimedEffect(state, {
     key: "slow_control",
     endTime: state.now + dur,
-    revert: () => { state.ball.speed = state.ball.baseSpeed; },
+    revert: () => revertSpeed(state, "slow_control"),
   });
 });
 
@@ -251,7 +272,7 @@ register("ball_powerup", (block, state) => {
   pushTimedEffect(state, {
     key: "ball_powerup",
     endTime: state.now + dur,
-    revert: () => { state.ball.radius = state.ball.baseRadius; },
+    revert: () => revertSize(state, "ball_powerup"),
   });
 });
 
@@ -284,7 +305,7 @@ register("state_change", (block, state) => {
   pushTimedEffect(state, {
     key: "state_change",
     endTime: state.now + dur,
-    revert: () => { state.ball.speed = state.ball.baseSpeed; },
+    revert: () => revertSpeed(state, "state_change"),
   });
 });
 
@@ -309,7 +330,7 @@ register("conduct", (block, state) => {
   pushTimedEffect(state, {
     key: "conduct",
     endTime: state.now + dur,
-    revert: () => { state.ball.radius = state.ball.baseRadius; },
+    revert: () => revertSize(state, "conduct"),
   });
 });
 
@@ -322,7 +343,7 @@ register("rare_support", (block, state) => {
   pushTimedEffect(state, {
     key: "rare_support",
     endTime: state.now + dur,
-    revert: () => { state.ball.radius = state.ball.baseRadius; },
+    revert: () => revertSize(state, "rare_support"),
   });
 });
 
@@ -338,7 +359,7 @@ register("slippery", (block, state) => {
   pushTimedEffect(state, {
     key: "slippery",
     endTime: state.now + dur,
-    revert: () => { state.ball.speed = state.ball.baseSpeed; },
+    revert: () => revertSpeed(state, "slippery"),
   });
 });
 
