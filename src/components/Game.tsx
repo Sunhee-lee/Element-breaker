@@ -134,7 +134,6 @@ export default function Game() {
   const [collected, setCollected] = useState<Set<number>>(new Set());
   const [levelCollected, setLevelCollected] = useState<Set<number>>(new Set());
   const [showCollection, setShowCollection] = useState(false);
-  const [selectedElement, setSelectedElement] = useState<number | null>(null);
   const [level, setLevel] = useState(1);
   const [timeLeft, setTimeLeft] = useState(LEVEL_TIMES[0]);
 
@@ -1193,24 +1192,22 @@ export default function Game() {
                 닫기
               </button>
             </div>
-            <div className="grid grid-cols-9 sm:grid-cols-12 gap-0.5">
-              {ELEMENTS.map((el) => {
+            {/* 18-column periodic table grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(18, 1fr)", gap: "1px" }}>
+              {Array.from({ length: 9 * 18 }, (_, i) => {
+                const row = Math.floor(i / 18) + 1;
+                const col = (i % 18) + 1;
+                const el = ELEMENTS.find(e => e.row === row && e.col === col);
+                if (!el) return <div key={i} />;
                 const found = collected.has(el.atomicNumber);
                 const colors = GROUP_COLORS[el.group];
-                const isSelected = selectedElement === el.atomicNumber;
                 return (
-                  <div key={el.atomicNumber}>
-                    <div
-                      onClick={() => found ? setSelectedElement(isSelected ? null : el.atomicNumber) : null}
-                      className={`flex items-center justify-center rounded text-center ${found ? "cursor-pointer hover:brightness-125" : "opacity-20"}`}
-                      style={{ background: found ? colors.fill : "#27272a", height: "16px", fontSize: "7px", fontWeight: 700, color: found ? colors.text : "#71717a", outline: isSelected ? "1.5px solid white" : "none" }}>
-                      {el.symbol}
-                    </div>
-                    {isSelected && found && (
-                      <div className="col-span-full bg-zinc-800 rounded px-1 py-0.5 mt-0.5">
-                        <p className="text-[9px] text-zinc-200 leading-tight">{getFlavorText(el.atomicNumber)}</p>
-                      </div>
-                    )}
+                  <div key={el.atomicNumber}
+                    className={`flex flex-col items-center justify-center rounded ${found ? "" : "opacity-15"}`}
+                    style={{ background: found ? colors.fill : "#27272a", aspectRatio: "1", padding: "1px" }}>
+                    <span style={{ fontSize: "5px", color: found ? "rgba(255,255,255,0.5)" : "#555", lineHeight: 1 }}>{el.atomicNumber}</span>
+                    <span style={{ fontSize: "8px", fontWeight: 700, color: found ? colors.text : "#555", lineHeight: 1.1 }}>{el.symbol}</span>
+                    <span style={{ fontSize: "4px", color: found ? "rgba(255,255,255,0.4)" : "#444", lineHeight: 1 }}>{el.name.slice(0, 5)}</span>
                   </div>
                 );
               })}
