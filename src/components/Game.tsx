@@ -131,7 +131,7 @@ export default function Game() {
   const comboRef = useRef(0);
   const shakeRef = useRef(0); // remaining shake frames
   const collectedRef = useRef<Set<number>>(new Set());
-  const multiBallsRef = useRef<Matter.Body[]>([]); // extra balls
+  const multiBallsRef = useRef<{ body: Matter.Body; expiry: number }[]>([]); // extra balls with expiry
 
   // ── Sync helpers (React state ← refs for render loop) ──
   const syncUI = useCallback(() => {
@@ -225,7 +225,7 @@ export default function Game() {
     collectedRef.current = new Set();
     // Remove multiball extras
     for (const mb of multiBallsRef.current) {
-      try { Matter.Composite.remove(engine.world, mb); } catch { /* */ }
+      try { Matter.Composite.remove(engine.world, mb.body); } catch { /* */ }
     }
     multiBallsRef.current = [];
     setGameOver(false);
@@ -405,7 +405,7 @@ export default function Game() {
               y: Math.sin(angle) * BASE_SPEED,
             });
             Matter.Composite.add(engine.world, mb);
-            multiBallsRef.current.push(mb);
+            multiBallsRef.current.push({ body: mb, expiry: performance.now() + 60000 }); // 1 minute
           }
         }
 
@@ -545,11 +545,12 @@ export default function Game() {
         Matter.Body.setVelocity(b, { x: nx, y: ny });
       }
 
-      // Multiball cleanup: remove extra balls that fell off screen
+      // Multiball cleanup: remove if fell off screen or expired (1 min)
+      const now2 = performance.now();
       for (let i = multiBallsRef.current.length - 1; i >= 0; i--) {
         const mb = multiBallsRef.current[i];
-        if (mb.position.y > GH + BALL_R * 2) {
-          try { Matter.Composite.remove(engine.world, mb); } catch { /* */ }
+        if (mb.body.position.y > GH + BALL_R * 2 || now2 > mb.expiry) {
+          try { Matter.Composite.remove(engine.world, mb.body); } catch { /* */ }
           multiBallsRef.current.splice(i, 1);
         }
       }
@@ -832,14 +833,15 @@ export default function Game() {
 
       // ── Multiball extra balls ──
       for (const mb of multiBallsRef.current) {
+        const mbp = mb.body.position;
         ctx.shadowBlur = 15;
         ctx.shadowColor = "rgba(251,191,36,0.6)";
-        const mbg = ctx.createRadialGradient(mb.position.x - 1, mb.position.y - 1, 0, mb.position.x, mb.position.y, BALL_R);
+        const mbg = ctx.createRadialGradient(mbp.x - 1, mbp.y - 1, 0, mbp.x, mbp.y, BALL_R);
         mbg.addColorStop(0, "#fde047");
         mbg.addColorStop(1, "#f97316");
         ctx.fillStyle = mbg;
         ctx.beginPath();
-        ctx.arc(mb.position.x, mb.position.y, BALL_R, 0, Math.PI * 2);
+        ctx.arc(mbp.x, mbp.y, BALL_R, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
       }
