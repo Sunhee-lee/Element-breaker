@@ -636,14 +636,14 @@ export default function Game() {
       } else {
         stallFramesRef.current = 0;
       }
-      // Immediate mild correction
-      if (Math.abs(b.velocity.y) < sp * 0.3) {
-        const ny = sp * 0.5;
+      // Immediate correction
+      if (Math.abs(b.velocity.y) < sp * 0.35) {
+        const ny = sp * 0.6;
         const nx = Math.sign(b.velocity.x || 1) * Math.sqrt(Math.max(0, sp * sp - ny * ny));
         Matter.Body.setVelocity(b, { x: nx, y: ny });
       }
-      // If stuck horizontal for 30+ frames (~0.5s), hard reset toward paddle
-      if (stallFramesRef.current > 30) {
+      // If stuck horizontal for 10+ frames (~0.17s), hard reset toward paddle
+      if (stallFramesRef.current > 10) {
         stallFramesRef.current = 0;
         const ny = sp * 0.8;
         const nx = Math.sign(b.velocity.x || 1) * Math.sqrt(Math.max(0, sp * sp - ny * ny));
