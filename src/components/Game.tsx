@@ -1176,7 +1176,7 @@ export default function Game() {
             </button>
             <button onClick={() => setShowCollection(true)}
               className="px-5 py-2 text-sm bg-zinc-700 hover:bg-zinc-600 text-zinc-200 rounded-lg transition-colors">
-              원소 도감 ({collected.size}/118)
+              원소 도감 ({levelCollected.size}/118)
             </button>
             <p className="text-xs text-zinc-500 mt-2">ESC / P</p>
           </div>
@@ -1186,7 +1186,7 @@ export default function Game() {
         {showCollection && (
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-20 overflow-y-auto p-3">
             <div className="flex justify-between items-center mb-2">
-              <p className="text-lg font-bold text-zinc-200">원소 도감 ({collected.size}/118)</p>
+              <p className="text-lg font-bold text-zinc-200">원소 도감 ({levelCollected.size}/118)</p>
               <button onClick={() => setShowCollection(false)}
                 className="px-3 py-1 text-sm bg-zinc-700 hover:bg-zinc-600 text-zinc-200 rounded transition-colors">
                 닫기
@@ -1199,7 +1199,7 @@ export default function Game() {
                 const col = (i % 18) + 1;
                 const el = ELEMENTS.find(e => e.row === row && e.col === col);
                 if (!el) return <div key={i} />;
-                const found = collected.has(el.atomicNumber);
+                const found = levelCollected.has(el.atomicNumber);
                 const colors = GROUP_COLORS[el.group];
                 return (
                   <div key={el.atomicNumber}
