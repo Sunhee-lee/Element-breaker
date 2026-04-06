@@ -28,7 +28,7 @@ const BH = 22;
 const BT = 20; // top offset
 const LN_GAP = 8; // extra gap before lanthanide/actinide rows
 const CAT = { WALL: 0x0001, PADDLE: 0x0002, BALL: 0x0004, BLOCK: 0x0008 };
-const CHAIN_BONUS = 50; // extra per chain depth
+// No chain explosions — blocks only destroyed by ball
 
 // ── Helpers ───────────────────────────────────────────────
 function blockPos(row: number, col: number) {
@@ -244,6 +244,8 @@ export default function Game() {
         radius: BALL_R, baseRadius: BALL_R,
         speed: BASE_SPEED, baseSpeed: BASE_SPEED,
         trailDamage: false, trailEnd: 0, trailInterval: 120,
+        pierce: false, pierceEnd: 0,
+        powerHit: false, powerHitEnd: 0,
       },
       paddle: {
         x: GW / 2, y: GH - 40,
@@ -256,7 +258,6 @@ export default function Game() {
       trajectoryEnd: 0,
       trajectoryBounces: 0,
       timedEffects: timedEffectsRef.current,
-      chainDepth: 0,
       addScore: (base: number) => {
         scoreRef.current += Math.round(base * gs.scoreMultiplier);
       },
@@ -267,11 +268,10 @@ export default function Game() {
         if (body) {
           try { Matter.Composite.remove(engine.world, body); } catch { /* already removed */ }
         }
-        // score with chain bonus
-        const base = blk.id * 10;
-        const chainBonus = gs.chainDepth * CHAIN_BONUS;
-        scoreRef.current += Math.round((base + chainBonus) * gs.scoreMultiplier);
-        // trigger this block's own effect
+        // score
+        const points = blk.id * 10;
+        scoreRef.current += Math.round(points * gs.scoreMultiplier);
+        // trigger this block's own effect (no area damage possible)
         executeEffect(blk.effect, blk, gs);
         syncUI();
         // check stage clear
@@ -406,32 +406,46 @@ export default function Game() {
         const isBlkB = pair.bodyB.label.startsWith("block-");
         if (isBlkA || isBlkB) {
           const blkBody = isBlkA ? pair.bodyA : pair.bodyB;
+          const ballBody = isBlkA ? pair.bodyB : pair.bodyA;
           const blk = blocksRef.current.find(
             (b) => (b as BlockRuntime & { body: Matter.Body }).body === blkBody && b.alive,
           );
           if (!blk) continue;
 
-          gs.chainDepth = 0; // reset chain for this hit
           gs.now = performance.now();
-
-          // Sync paddle pos into gs
           if (paddleRef.current) {
             gs.paddle.x = paddleRef.current.position.x;
             gs.paddle.y = paddleRef.current.position.y;
           }
 
-          blk.hp -= 1;
+          // Power hit = double damage
+          const dmg = gs.ball.powerHit ? 2 : 1;
+          blk.hp -= dmg;
+
           if (blk.hp <= 0 && blk.breakable) {
             gs.destroyBlock(blk);
           } else if (!blk.breakable) {
-            // indestructible – still trigger effect (e.g. Ne bounce)
             executeEffect(blk.effect, blk, gs);
           } else {
-            // damaged but not dead – trigger effect for some types
-            if (blk.effect === "sharp_reflect") {
+            // damaged but alive – reflect effects still fire
+            if (blk.effect === "sharp_reflect" || blk.effect === "metal_reflect") {
               executeEffect(blk.effect, blk, gs);
             }
           }
+
+          // Pierce: keep ball velocity through the block
+          if (gs.ball.pierce && ballRef.current) {
+            const sp = gs.ball.speed;
+            const bv = ballRef.current.velocity;
+            const mag = Math.sqrt(bv.x * bv.x + bv.y * bv.y);
+            if (mag > 0) {
+              Matter.Body.setVelocity(ballRef.current, {
+                x: (bv.x / mag) * sp,
+                y: (bv.y / mag) * sp,
+              });
+            }
+          }
+
           syncUI();
         }
       }

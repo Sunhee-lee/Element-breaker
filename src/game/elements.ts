@@ -103,14 +103,13 @@ interface CategoryRule {
 const CATEGORY_RULES: Record<ElementCategory, CategoryRule> = {
   alkali_metal: {
     group: "attack",
-    effect: "explosion_chain",
+    effect: "ball_power",
     vfx: "explosion_orange",
     baseDurability: 1,
     durabilityScale: 0,
     baseRarity: "uncommon",
     buildParams: (el) => ({
-      radius: 80 + el.period * 15,
-      chain: el.period >= 3,
+      duration: 1500 + el.period * 300,
     }),
   },
   alkaline_earth_metal: {
@@ -155,8 +154,7 @@ const CATEGORY_RULES: Record<ElementCategory, CategoryRule> = {
     durabilityScale: 0.15,
     baseRarity: "uncommon",
     buildParams: (el) => ({
-      conductBoost: 1.1 + el.period * 0.05,
-      range: 100 + el.period * 10,
+      duration: 1500 + el.period * 200,
     }),
   },
   nonmetal: {
@@ -178,8 +176,7 @@ const CATEGORY_RULES: Record<ElementCategory, CategoryRule> = {
     durabilityScale: 0,
     baseRarity: "uncommon",
     buildParams: (el) => ({
-      radius: 80 + el.period * 12,
-      durabilityDown: 1,
+      duration: 2000 + el.period * 300,
     }),
   },
   noble_gas: {
@@ -207,14 +204,13 @@ const CATEGORY_RULES: Record<ElementCategory, CategoryRule> = {
   },
   actinide: {
     group: "attack",
-    effect: "radiation",
+    effect: "ball_pierce",
     vfx: "radiation_burst",
     baseDurability: 2,
     durabilityScale: 0.15,
     baseRarity: "epic",
     buildParams: (el) => ({
-      radius: 100 + (el.z - 89) * 3,
-      chain: el.z >= 92,
+      duration: 1500 + (el.z - 89) * 100,
     }),
   },
 };
@@ -226,16 +222,16 @@ const CATEGORY_RULES: Record<ElementCategory, CategoryRule> = {
 type PartialOverride = Partial<Pick<ElementDef, "group" | "effect" | "vfx" | "durability" | "rarity" | "breakable">> & { params?: EffectParams };
 
 const OVERRIDES: Record<number, PartialOverride> = {
-  // ── ATTACK ──
-  1:  { group: "attack",  effect: "explosion",              vfx: "explosion_red",    params: { radius: 100, chain: false } },
-  3:  { group: "attack",  effect: "chain_lightning",        vfx: "chain_lightning",  params: { targets: 2, range: 160 } },
-  11: { group: "attack",  effect: "explosion_chain",        vfx: "explosion_orange", params: { radius: 140, chain: true } },
-  19: { group: "attack",  effect: "fast_chain_explosion",   vfx: "fast_explosion",   params: { radius: 170, chain: true, fastTrigger: true } },
-  92: { group: "attack",  effect: "radiation",              vfx: "radiation_burst",  rarity: "legendary", durability: 3, params: { radius: 180, chain: true } },
-  94: { group: "attack",  effect: "fast_chain_explosion",   vfx: "radiation_burst",  rarity: "legendary", durability: 3, params: { radius: 200, chain: true, fastTrigger: true } },
+  // ── ATTACK (ball buffs, no area damage) ──
+  1:  { group: "attack",  effect: "ball_pierce",  vfx: "explosion_red",    params: { duration: 2000 } },
+  3:  { group: "attack",  effect: "ball_power",   vfx: "chain_lightning",  params: { duration: 2500 } },
+  11: { group: "attack",  effect: "ball_power",   vfx: "explosion_orange", params: { duration: 3000 } },
+  19: { group: "attack",  effect: "ball_pierce",  vfx: "fast_explosion",   params: { duration: 3000 } },
+  92: { group: "attack",  effect: "ball_pierce",  vfx: "radiation_burst",  rarity: "legendary", durability: 3, params: { duration: 3500 } },
+  94: { group: "attack",  effect: "ball_speed",   vfx: "radiation_burst",  rarity: "legendary", durability: 3, params: { duration: 4000 } },
 
   // ── DEFENSE ──
-  4:  { group: "defense",  effect: "shard_splash",   vfx: "shard_splash",   durability: 2, params: { shardCount: 4, range: 80 } },
+  4:  { group: "defense",  effect: "shard_splash",   vfx: "shard_splash",   durability: 2, params: { shardCount: 4, range: 50 } },
   6:  { group: "defense",  effect: "none",           vfx: "none",           durability: 3, rarity: "rare" },
   13: { group: "defense",  effect: "sharp_reflect",  vfx: "sharp_reflect",  durability: 2, params: { reflectMultiplier: 1.25 } },
   26: { group: "defense",  effect: "metal_reflect",  vfx: "metal_reflect",  durability: 3, rarity: "rare", params: { reflectMultiplier: 1.3 } },
@@ -250,16 +246,16 @@ const OVERRIDES: Record<number, PartialOverride> = {
   14: { group: "utility",  effect: "trajectory_guide", vfx: "trajectory_line", params: { duration: 4000, guideBounces: 3 } },
   15: { group: "utility",  effect: "trail_damage",     vfx: "trail_fire",      params: { duration: 2000, interval: 120 } },
   18: { group: "defense",  effect: "floor_shield",     vfx: "shield_blue",     params: { duration: 4000 } },
-  29: { group: "utility",  effect: "conduct",          vfx: "conduct_pulse",   rarity: "rare", params: { conductBoost: 1.3, range: 150 } },
+  29: { group: "utility",  effect: "conduct",          vfx: "conduct_pulse",   rarity: "rare", params: { duration: 2500 } },
   80: { group: "debuff",   effect: "slippery",         vfx: "none",            rarity: "rare", params: { duration: 2500 } },
 
   // ── DEBUFF ──
-  9:  { group: "debuff", effect: "corrosion",     vfx: "corrosion_green", params: { radius: 120, durabilityDown: 1 } },
+  9:  { group: "debuff", effect: "corrosion",     vfx: "corrosion_green", params: { duration: 3000 } },
   16: { group: "debuff", effect: "gas_zone",      vfx: "gas_yellow",      params: { zoneHeight: 100, duration: 3000, paddleSpeedMultiplier: 0.8 } },
   17: { group: "debuff", effect: "paddle_debuff", vfx: "paddle_shrink",   params: { scale: 0.8, duration: 3000 } },
 
   // ── SCORE ──
-  7:  { group: "score", effect: "freeze_score", vfx: "freeze_ice",  params: { radius: 120, multiplier: 1.5, duration: 3000 } },
+  7:  { group: "score", effect: "freeze_score", vfx: "freeze_ice",  params: { multiplier: 1.5, duration: 3000 } },
   12: { group: "score", effect: "flash_bonus",  vfx: "flash_white", params: { bonus: 500 } },
   79: { group: "score", effect: "flash_bonus",  vfx: "flash_white", rarity: "legendary", params: { bonus: 2000 } },
 
