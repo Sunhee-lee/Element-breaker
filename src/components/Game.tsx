@@ -503,13 +503,13 @@ export default function Game() {
 
         // Multiball: top 3 radioactive (Og, Ts, Lv) spawn 2 extra balls
         if (MULTIBALL_ELEMENTS.has(blk.id)) {
-          const padY = paddleRef.current ? paddleRef.current.position.y - 30 : GH - 80;
           for (let i = 0; i < 2; i++) {
             const angle = -Math.PI / 2 + (i === 0 ? -0.4 : 0.4);
-            const mb = Matter.Bodies.circle(GW / 2 + (i === 0 ? -30 : 30), padY, BALL_R, {
+            // Spawn at block position, ignore blocks initially to escape
+            const mb = Matter.Bodies.circle(blk.x + (i === 0 ? -10 : 10), blk.y, BALL_R, {
               restitution: 1, friction: 0, frictionAir: 0, frictionStatic: 0,
               inertia: Infinity, inverseInertia: 0, density: 1,
-              collisionFilter: { category: CAT.BALL, mask: CAT.WALL | CAT.PADDLE | CAT.BLOCK },
+              collisionFilter: { category: CAT.BALL, mask: CAT.WALL | CAT.PADDLE },
               label: "multiball",
             });
             Matter.Body.setVelocity(mb, {
@@ -517,6 +517,10 @@ export default function Game() {
               y: Math.sin(angle) * BASE_SPEED,
             });
             Matter.Composite.add(engine.world, mb);
+            // Restore block collision after 500ms (enough time to escape)
+            setTimeout(() => {
+              try { mb.collisionFilter.mask = CAT.WALL | CAT.PADDLE | CAT.BLOCK; } catch { /* */ }
+            }, 500);
             multiBallsRef.current.push({ body: mb });
           }
         }
@@ -740,12 +744,11 @@ export default function Game() {
             y: Math.sin(angle) * sp,
           });
           sndPaddle();
-          comboRef.current = 0; // reset combo on paddle hit
-          // Radioactive pierce: resets immediately on paddle hit
-          if (gs.ball.pierce) {
+          comboRef.current = 0;
+          // Radioactive pierce: only reset when MAIN ball hits paddle
+          if (gs.ball.pierce && ballBody === ballRef.current) {
             gs.ball.pierce = false;
             gs.ball.pierceHits = 0;
-            // Immediately restore block collision
             if (ballRef.current) {
               ballRef.current.collisionFilter.mask = CAT.WALL | CAT.PADDLE | CAT.BLOCK;
             }

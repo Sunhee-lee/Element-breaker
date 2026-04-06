@@ -527,16 +527,25 @@ export class VfxManager {
       ctx.globalAlpha = 1;
     }
 
-    // ── Floor shield bar ──
+    // ── Floor shield neon bar ──
     if (this.shield) {
-      const remaining = Math.max(0, this.shield.endTime - performance.now());
-      const total = 4000;
-      const pct = remaining / total;
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = "rgba(56,189,248,0.6)";
-      ctx.fillStyle = `rgba(56,189,248,${0.3 + pct * 0.4})`;
-      ctx.fillRect(0, gameHeight - 4, gameWidth * pct, 4);
+      const now = performance.now();
+      const remaining = Math.max(0, this.shield.endTime - now);
+      const total = this.shield.endTime - (this.shield.endTime - 20000); // approximate
+      const pct = Math.min(1, remaining / 20000);
+      const pulse = 0.7 + Math.sin(now / 200) * 0.3; // pulsing glow
+      // Thick neon bar at bottom
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = `rgba(56,189,248,${0.8 * pulse})`;
+      ctx.fillStyle = `rgba(56,189,248,${(0.4 + pct * 0.5) * pulse})`;
+      ctx.fillRect(0, gameHeight - 8, gameWidth, 8);
+      // Inner bright line
+      ctx.fillStyle = `rgba(186,230,253,${0.6 * pulse})`;
+      ctx.fillRect(0, gameHeight - 6, gameWidth, 3);
       ctx.shadowBlur = 0;
+      // Time indicator (shrinking)
+      ctx.fillStyle = `rgba(56,189,248,0.15)`;
+      ctx.fillRect(0, gameHeight - 8, gameWidth * pct, 8);
     }
   }
 
