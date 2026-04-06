@@ -1150,7 +1150,7 @@ export default function Game() {
                   <div key={el.atomicNumber}
                     onClick={() => found ? setSelectedElement(el.atomicNumber === selectedElement ? null : el.atomicNumber) : null}
                     className={`flex flex-col items-center justify-center rounded p-0.5 text-center ${found ? "cursor-pointer hover:brightness-125" : "opacity-20"}`}
-                    style={{ background: found ? colors.fill : "#27272a", minHeight: "36px", outline: selectedElement === el.atomicNumber ? "2px solid white" : "none" }}>
+                    style={{ background: found ? colors.fill : "#27272a", minHeight: "18px", outline: selectedElement === el.atomicNumber ? "2px solid white" : "none" }}>
                     <span className="text-[8px] text-zinc-400">{el.atomicNumber}</span>
                     <span className="text-[10px] font-bold" style={{ color: found ? colors.text : "#71717a" }}>{el.symbol}</span>
                   </div>
