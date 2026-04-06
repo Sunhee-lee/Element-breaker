@@ -656,10 +656,19 @@ export default function Game() {
         Matter.Body.setPosition(b, { x: b.position.x, y: b.position.y + 3 });
       }
 
-      // Multiball cleanup: remove if fell off screen or expired (1 min)
-      const now2 = performance.now();
+      // Multiball: anti-stall + cleanup
       for (let i = multiBallsRef.current.length - 1; i >= 0; i--) {
         const mb = multiBallsRef.current[i];
+        const mbv = mb.body.velocity;
+        const mbsp = Math.sqrt(mbv.x * mbv.x + mbv.y * mbv.y) || sp;
+        // Force multiball downward if moving too horizontally
+        if (Math.abs(mbv.y) < mbsp * 0.35) {
+          const ny = mbsp * 0.7;
+          const nx = Math.sign(mbv.x || 1) * Math.sqrt(Math.max(0, mbsp * mbsp - ny * ny));
+          Matter.Body.setVelocity(mb.body, { x: nx, y: ny });
+          Matter.Body.setPosition(mb.body, { x: mb.body.position.x, y: mb.body.position.y + 2 });
+        }
+        // Remove if fell off screen
         if (mb.body.position.y > GH + BALL_R * 2) {
           try { Matter.Composite.remove(engine.world, mb.body); } catch { /* */ }
           multiBallsRef.current.splice(i, 1);
