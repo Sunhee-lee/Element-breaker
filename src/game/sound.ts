@@ -132,89 +132,28 @@ export function sndPowerup() {
 }
 
 // ────────────────────────────────────────────────────────────
-//  Background Music — smooth ambient pads per level
+//  Background Music — mp3 files per level
 // ────────────────────────────────────────────────────────────
 
-let bgmOscs: OscillatorNode[] = [];
-let bgmGain: GainNode | null = null;
-
-// Ambient chord progressions (frequencies) — slow evolving pads
-// L1: warm C major (calm)
-const L1_CHORDS = [[130.8,164.8,196,261.6], [146.8,174.6,220,293.7], [164.8,196,246.9,329.6], [130.8,164.8,196,261.6]];
-// L2: dramatic D minor (tense)
-const L2_CHORDS = [[146.8,174.6,220,293.7], [130.8,164.8,196,261.6], [123.5,155.6,185,246.9], [146.8,174.6,220,293.7]];
-// L3: ethereal A minor (epic)
-const L3_CHORDS = [[110,138.6,164.8,220], [123.5,155.6,185,246.9], [130.8,164.8,196,261.6], [110,138.6,164.8,220]];
-
-const CHORD_SETS = [L1_CHORDS, L2_CHORDS, L3_CHORDS];
-let bgmChordIdx = 0;
-let bgmInterval: ReturnType<typeof setInterval> | null = null;
-
-function setChord(c: AudioContext, freqs: number[], dest: AudioNode, fadeTime: number) {
-  // Fade out old oscillators
-  for (const o of bgmOscs) {
-    try { o.stop(c.currentTime + fadeTime); } catch { /* */ }
-  }
-  bgmOscs = [];
-
-  // Create new pad oscillators
-  for (const freq of freqs) {
-    const o = c.createOscillator();
-    const g = c.createGain();
-    o.type = "sine";
-    o.frequency.value = freq;
-    // Soft detuned layer for richness
-    const o2 = c.createOscillator();
-    const g2 = c.createGain();
-    o2.type = "sine";
-    o2.frequency.value = freq * 1.003; // slight detune
-    g.gain.setValueAtTime(0.001, c.currentTime);
-    g.gain.linearRampToValueAtTime(0.04, c.currentTime + fadeTime);
-    g2.gain.setValueAtTime(0.001, c.currentTime);
-    g2.gain.linearRampToValueAtTime(0.025, c.currentTime + fadeTime);
-    o.connect(g).connect(dest);
-    o2.connect(g2).connect(dest);
-    o.start();
-    o2.start();
-    bgmOscs.push(o, o2);
-  }
-}
+const BGM_SRCS = ["/level1.mp3", "/level2.mp3", "/level3.mp3"];
+let bgmAudio: HTMLAudioElement | null = null;
 
 export function startBGM(level: number) {
   stopBGM();
   try {
-    const c = getCtx();
-    bgmGain = c.createGain();
-    bgmGain.gain.value = 0.5;
-    bgmGain.connect(c.destination);
-
-    const lvl = Math.max(0, Math.min(2, level - 1));
-    const chords = CHORD_SETS[lvl];
-    bgmChordIdx = 0;
-
-    // Play first chord
-    setChord(c, chords[0], bgmGain, 2);
-
-    // Cycle chords every 8 seconds with smooth crossfade
-    bgmInterval = setInterval(() => {
-      try {
-        const cx = getCtx();
-        bgmChordIdx = (bgmChordIdx + 1) % chords.length;
-        if (bgmGain) setChord(cx, chords[bgmChordIdx], bgmGain, 3);
-      } catch { /* */ }
-    }, 8000);
+    const idx = Math.max(0, Math.min(2, level - 1));
+    bgmAudio = new Audio(BGM_SRCS[idx]);
+    bgmAudio.loop = true;
+    bgmAudio.volume = 0.3;
+    bgmAudio.play().catch(() => { /* autoplay blocked */ });
   } catch { /* */ }
 }
 
 export function stopBGM() {
-  if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
-  for (const o of bgmOscs) {
-    try { o.stop(); } catch { /* */ }
-  }
-  bgmOscs = [];
-  if (bgmGain) {
-    try { bgmGain.gain.setValueAtTime(0, getCtx().currentTime); } catch { /* */ }
-    bgmGain = null;
+  if (bgmAudio) {
+    bgmAudio.pause();
+    bgmAudio.currentTime = 0;
+    bgmAudio = null;
   }
 }
 
