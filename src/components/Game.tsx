@@ -34,7 +34,7 @@ const BASE_SPEED = 6;
 
 // Level configs
 const LEVEL_TIMES = [420, 300, 180]; // L1: 7min, L2: 5min, L3: 3min
-const LEVEL_SPEED = [BASE_SPEED, BASE_SPEED * 1.4, BASE_SPEED * 1.8]; // L1, L2, L3
+const LEVEL_SPEED = [BASE_SPEED, BASE_SPEED * 1.2, BASE_SPEED * 1.5]; // L1, L2, L3
 // Level color themes: [hue-shift in degrees, saturation-boost, brightness-boost]
 // L1: original, L2: red/warm shift, L3: blue/ice shift
 type LevelTheme = { hueShift: number; tintR: number; tintG: number; tintB: number };
@@ -523,6 +523,7 @@ export default function Game() {
           gs.stageClear = true;
           setStageClear(true);
           Matter.Body.setVelocity(ball, { x: 0, y: 0 });
+          if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
         }
       },
       spawnVfx: (key: VfxKey, x: number, y: number, extra?: Record<string, unknown>) => {
