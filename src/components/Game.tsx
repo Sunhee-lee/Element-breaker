@@ -143,7 +143,7 @@ export default function Game() {
   const levelRef = useRef(1);
   const timerStartRef = useRef(0); // performance.now() when launched // remaining shake frames
   const collectedRef = useRef<Set<number>>(new Set());
-  const multiBallsRef = useRef<{ body: Matter.Body; expiry: number }[]>([]); // extra balls with expiry
+  const multiBallsRef = useRef<{ body: Matter.Body }[]>([]); // extra balls, no time limit
 
   // ── Sync helpers (React state ← refs for render loop) ──
   const syncUI = useCallback(() => {
@@ -473,7 +473,7 @@ export default function Game() {
               y: Math.sin(angle) * BASE_SPEED,
             });
             Matter.Composite.add(engine.world, mb);
-            multiBallsRef.current.push({ body: mb, expiry: performance.now() + 60000 }); // 1 minute
+            multiBallsRef.current.push({ body: mb });
           }
         }
 
@@ -656,7 +656,7 @@ export default function Game() {
       const now2 = performance.now();
       for (let i = multiBallsRef.current.length - 1; i >= 0; i--) {
         const mb = multiBallsRef.current[i];
-        if (mb.body.position.y > GH + BALL_R * 2 || now2 > mb.expiry) {
+        if (mb.body.position.y > GH + BALL_R * 2) {
           try { Matter.Composite.remove(engine.world, mb.body); } catch { /* */ }
           multiBallsRef.current.splice(i, 1);
         }
