@@ -427,6 +427,33 @@ export default function Game() {
         const s = sp / mag;
         Matter.Body.setVelocity(b, { x: vx * s, y: vy * s });
       }
+      // Pierce mode: disable block collision mask, manually destroy overlapping blocks
+      if (gs.ball.pierce) {
+        // Make ball ignore blocks in physics
+        if (b.collisionFilter.mask !== (CAT.WALL | CAT.PADDLE)) {
+          b.collisionFilter.mask = CAT.WALL | CAT.PADDLE;
+        }
+        // Manually check overlap with alive blocks
+        const bx = b.position.x;
+        const by = b.position.y;
+        const br = ballRadiusRef.current;
+        for (const blk of blocksRef.current) {
+          if (!blk.alive || !blk.breakable) continue;
+          // Simple AABB overlap check
+          const dx = Math.abs(bx - blk.x);
+          const dy = Math.abs(by - blk.y);
+          if (dx < BW / 2 + br && dy < BH / 2 + br) {
+            blk.hp = 0;
+            gs.destroyBlock(blk);
+          }
+        }
+      } else {
+        // Restore normal collision mask
+        if (b.collisionFilter.mask !== (CAT.WALL | CAT.PADDLE | CAT.BLOCK)) {
+          b.collisionFilter.mask = CAT.WALL | CAT.PADDLE | CAT.BLOCK;
+        }
+      }
+
       // Prevent horizontal stall — force ball downward toward paddle
       if (Math.abs(b.velocity.y) < 1.5) {
         const ny = 2.5; // always push down so it returns to paddle
@@ -436,14 +463,6 @@ export default function Game() {
     });
 
     // ── Collision handler ──
-    // Save pre-collision velocity so pierce can restore it
-    let savedVx = 0, savedVy = 0;
-    Matter.Events.on(engine, "beforeUpdate", () => {
-      if (ballRef.current) {
-        savedVx = ballRef.current.velocity.x;
-        savedVy = ballRef.current.velocity.y;
-      }
-    });
     Matter.Events.on(engine, "collisionStart", (event) => {
       for (const pair of event.pairs) {
         // Paddle
@@ -488,11 +507,8 @@ export default function Game() {
           }
 
           if (gs.ball.pierce) {
-            // Radioactive pierce: instant destroy + pass through
-            if (blk.breakable) {
-              blk.hp = 0;
-              gs.destroyBlock(blk);
-            }
+            // Pierce handled in afterUpdate via manual overlap check
+            continue;
           } else {
             // Normal hit
             const dmg = gs.ball.powerHit ? 2 : 1;
@@ -506,18 +522,6 @@ export default function Game() {
               if (blk.effect === "sharp_reflect" || blk.effect === "metal_reflect") {
                 executeEffect(blk.effect, blk, gs);
               }
-            }
-          }
-
-          // Pierce: restore pre-collision velocity so ball passes through
-          if (gs.ball.pierce && ballRef.current) {
-            const sp = gs.ball.speed;
-            const mag = Math.sqrt(savedVx * savedVx + savedVy * savedVy);
-            if (mag > 0) {
-              Matter.Body.setVelocity(ballRef.current, {
-                x: (savedVx / mag) * sp,
-                y: (savedVy / mag) * sp,
-              });
             }
           }
 
