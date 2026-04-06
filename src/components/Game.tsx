@@ -11,7 +11,6 @@ import {
 import { executeEffect, type BlockRuntime, type GameState } from "@/game/effects";
 import { VfxManager } from "@/game/vfx";
 import { getFlavorText } from "@/game/elementFlavor";
-import { getKrName } from "@/game/elementKrNames";
 import {
   sndPaddle, sndBlockBreak, sndExplosion, sndRadioactive,
   sndCombo, sndPowerup, sndLifeLost,
@@ -503,9 +502,10 @@ export default function Game() {
 
         // Multiball: top 3 radioactive (Og, Ts, Lv) spawn 2 extra balls
         if (MULTIBALL_ELEMENTS.has(blk.id)) {
+          const padY = paddleRef.current ? paddleRef.current.position.y - 30 : GH - 80;
           for (let i = 0; i < 2; i++) {
-            const angle = -Math.PI / 2 + (i === 0 ? -0.5 : 0.5);
-            const mb = Matter.Bodies.circle(blk.x, blk.y + BH + BALL_R + 2, BALL_R, {
+            const angle = -Math.PI / 2 + (i === 0 ? -0.4 : 0.4);
+            const mb = Matter.Bodies.circle(GW / 2 + (i === 0 ? -30 : 30), padY, BALL_R, {
               restitution: 1, friction: 0, frictionAir: 0, frictionStatic: 0,
               inertia: Infinity, inverseInertia: 0, density: 1,
               collisionFilter: { category: CAT.BALL, mask: CAT.WALL | CAT.PADDLE | CAT.BLOCK },
@@ -744,6 +744,10 @@ export default function Game() {
           if (gs.ball.pierce) {
             gs.ball.pierce = false;
             gs.ball.pierceHits = 0;
+            // Immediately restore block collision
+            if (ballRef.current) {
+              ballRef.current.collisionFilter.mask = CAT.WALL | CAT.PADDLE | CAT.BLOCK;
+            }
           }
           continue;
         }
@@ -1167,6 +1171,29 @@ export default function Game() {
         </div>
       </div>
 
+      {/* Control bar — above canvas */}
+      {launched && (
+        <div className="flex items-center justify-between w-full px-1 mb-1 text-xs">
+          <button onClick={() => { stopBGM(); restartGame(); setDifficulty(null); }}
+            className="px-3 py-1 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-400">
+            ← 돌아가기
+          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-zinc-500">♪</span>
+            <input type="range" min="0" max="100" value={Math.round(bgmVol * 100)}
+              onChange={(e) => { const v = Number(e.target.value) / 100; setBgmVol(v); setBGMVolume(v); }}
+              className="w-16 sm:w-20 h-1 accent-indigo-500" />
+          </div>
+          {!gameOver && !stageClear && !paused && (
+            <button onClick={togglePause}
+              className="px-3 py-1 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-400">
+              일시정지
+            </button>
+          )}
+          {(gameOver || stageClear || paused) && <div className="w-16" />}
+        </div>
+      )}
+
       {/* Canvas */}
       <div className="relative rounded-lg overflow-hidden shadow-[0_0_40px_rgba(99,102,241,0.15)] w-full">
         <canvas ref={canvasRef} width={GW} height={GH}
@@ -1208,14 +1235,12 @@ export default function Game() {
                 if (!el) return <div key={i} />;
                 const found = levelCollected.has(el.atomicNumber);
                 const colors = GROUP_COLORS[el.group];
-                const krName = getKrName(el.atomicNumber);
                 return (
                   <div key={el.atomicNumber}
                     className={`flex flex-col items-center justify-center rounded overflow-hidden ${found ? "" : "opacity-15"}`}
                     style={{ background: found ? colors.fill : "#27272a" }}>
                     <span style={{ fontSize: "clamp(3px,0.8vw,5px)", color: found ? "rgba(255,255,255,0.5)" : "#555", lineHeight: 1 }}>{el.atomicNumber}</span>
                     <span style={{ fontSize: "clamp(5px,1.4vw,9px)", fontWeight: 700, color: found ? "#fff" : "#555", lineHeight: 1.1 }}>{el.symbol}</span>
-                    <span style={{ fontSize: "clamp(3px,0.7vw,4px)", color: found ? "rgba(255,255,255,0.5)" : "#444", lineHeight: 1 }}>{krName.slice(0, 3)}</span>
                   </div>
                 );
               })}
@@ -1245,7 +1270,6 @@ export default function Game() {
                         style={{ background: found ? clr.fill : "#27272a", aspectRatio: "1" }}>
                         <span style={{ fontSize: "3px", color: found ? "rgba(255,255,255,0.5)" : "#555", lineHeight: 1 }}>{el.atomicNumber}</span>
                         <span style={{ fontSize: "5px", fontWeight: 700, color: found ? "#fff" : "#555", lineHeight: 1 }}>{el.symbol}</span>
-                        <span style={{ fontSize: "3px", color: found ? "rgba(255,255,255,0.4)" : "#444", lineHeight: 1 }}>{getKrName(el.atomicNumber).slice(0,3)}</span>
                       </div>
                     );
                   })}
@@ -1284,7 +1308,6 @@ export default function Game() {
                         style={{ background: found ? clr.fill : "#27272a", aspectRatio: "1" }}>
                         <span style={{ fontSize: "3px", color: found ? "rgba(255,255,255,0.5)" : "#555", lineHeight: 1 }}>{el.atomicNumber}</span>
                         <span style={{ fontSize: "5px", fontWeight: 700, color: found ? "#fff" : "#555", lineHeight: 1 }}>{el.symbol}</span>
-                        <span style={{ fontSize: "3px", color: found ? "rgba(255,255,255,0.4)" : "#444", lineHeight: 1 }}>{getKrName(el.atomicNumber).slice(0,3)}</span>
                       </div>
                     );
                   })}
@@ -1303,31 +1326,6 @@ export default function Game() {
           </div>
         )}
       </div>
-
-      {/* Bottom bar — outside canvas */}
-      {launched && (
-        <div className="flex items-center justify-between w-full px-1 mt-1 text-xs">
-          <button onClick={() => { stopBGM(); restartGame(); setDifficulty(null); }}
-            className="px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-400">
-            ← 돌아가기
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-zinc-500">♪</span>
-            <input type="range" min="0" max="100" value={Math.round(bgmVol * 100)}
-              onChange={(e) => { const v = Number(e.target.value) / 100; setBgmVol(v); setBGMVolume(v); }}
-              className="w-16 sm:w-20 h-1 accent-indigo-500" />
-          </div>
-          {!gameOver && !stageClear && !paused && (
-            <button onClick={togglePause}
-              className="px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-400">
-              일시정지
-            </button>
-          )}
-          {(gameOver || stageClear || paused) && (
-            <div className="w-16" />
-          )}
-        </div>
-      )}
     </div>
   );
 }
