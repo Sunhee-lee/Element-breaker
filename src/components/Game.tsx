@@ -348,7 +348,9 @@ export default function Game() {
     const leftW = Matter.Bodies.rectangle(-WALL_T / 2, GH / 2, WALL_T, GH, wo);
     const rightW = Matter.Bodies.rectangle(GW + WALL_T / 2, GH / 2, WALL_T, GH, wo);
 
-    const paddle = Matter.Bodies.rectangle(GW / 2, GH - 40, PADDLE_W, PADDLE_H, {
+    const initPW = DIFF_PADDLE[difficulty ?? "normal"] ?? PADDLE_W;
+    paddleWRef.current = initPW;
+    const paddle = Matter.Bodies.rectangle(GW / 2, GH - 40, initPW, PADDLE_H, {
       isStatic: true, restitution: 1, friction: 0, frictionStatic: 0,
       chamfer: { radius: 7 },
       collisionFilter: { category: CAT.PADDLE },
@@ -383,7 +385,7 @@ export default function Game() {
       },
       paddle: {
         x: GW / 2, y: GH - 40,
-        width: PADDLE_W, baseWidth: PADDLE_W,
+        width: initPW, baseWidth: initPW,
         speedMultiplier: 1,
       },
       score: 0,
