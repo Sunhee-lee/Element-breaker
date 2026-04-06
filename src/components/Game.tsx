@@ -11,6 +11,7 @@ import {
 import { executeEffect, type BlockRuntime, type GameState } from "@/game/effects";
 import { VfxManager } from "@/game/vfx";
 import { getFlavorText } from "@/game/elementFlavor";
+import { getKrName } from "@/game/elementKrNames";
 import {
   sndPaddle, sndBlockBreak, sndExplosion, sndRadioactive,
   sndCombo, sndPowerup, sndLifeLost,
@@ -1200,7 +1201,7 @@ export default function Game() {
                 닫기
               </button>
             </div>
-            {/* 18-column periodic table grid */}
+            {/* 18-column periodic table grid — fits one page */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(18, 1fr)", gap: "1px" }}>
               {Array.from({ length: 9 * 18 }, (_, i) => {
                 const row = Math.floor(i / 18) + 1;
@@ -1209,13 +1210,14 @@ export default function Game() {
                 if (!el) return <div key={i} />;
                 const found = levelCollected.has(el.atomicNumber);
                 const colors = GROUP_COLORS[el.group];
+                const krName = getKrName(el.atomicNumber);
                 return (
                   <div key={el.atomicNumber}
                     className={`flex flex-col items-center justify-center rounded ${found ? "" : "opacity-15"}`}
-                    style={{ background: found ? colors.fill : "#27272a", aspectRatio: "1", padding: "1px" }}>
-                    <span style={{ fontSize: "5px", color: found ? "rgba(255,255,255,0.5)" : "#555", lineHeight: 1 }}>{el.atomicNumber}</span>
-                    <span style={{ fontSize: "8px", fontWeight: 700, color: found ? colors.text : "#555", lineHeight: 1.1 }}>{el.symbol}</span>
-                    <span style={{ fontSize: "4px", color: found ? "rgba(255,255,255,0.4)" : "#444", lineHeight: 1 }}>{el.name.slice(0, 5)}</span>
+                    style={{ background: found ? colors.fill : "#27272a", aspectRatio: "1" }}>
+                    <span style={{ fontSize: "4px", color: found ? "rgba(255,255,255,0.5)" : "#555", lineHeight: 1 }}>{el.atomicNumber}</span>
+                    <span style={{ fontSize: "7px", fontWeight: 700, color: found ? "#fff" : "#555", lineHeight: 1 }}>{el.symbol}</span>
+                    <span style={{ fontSize: "3.5px", color: found ? "rgba(255,255,255,0.5)" : "#444", lineHeight: 1 }}>{krName.slice(0, 3)}</span>
                   </div>
                 );
               })}
@@ -1242,9 +1244,10 @@ export default function Game() {
                     return (
                       <div key={el.atomicNumber}
                         className={`flex flex-col items-center justify-center rounded ${found ? "" : "opacity-15"}`}
-                        style={{ background: found ? clr.fill : "#27272a", aspectRatio: "1", padding: "1px" }}>
-                        <span style={{ fontSize: "4px", color: found ? "rgba(255,255,255,0.5)" : "#555", lineHeight: 1 }}>{el.atomicNumber}</span>
-                        <span style={{ fontSize: "6px", fontWeight: 700, color: found ? "#fff" : "#555", lineHeight: 1 }}>{el.symbol}</span>
+                        style={{ background: found ? clr.fill : "#27272a", aspectRatio: "1" }}>
+                        <span style={{ fontSize: "3px", color: found ? "rgba(255,255,255,0.5)" : "#555", lineHeight: 1 }}>{el.atomicNumber}</span>
+                        <span style={{ fontSize: "5px", fontWeight: 700, color: found ? "#fff" : "#555", lineHeight: 1 }}>{el.symbol}</span>
+                        <span style={{ fontSize: "3px", color: found ? "rgba(255,255,255,0.4)" : "#444", lineHeight: 1 }}>{getKrName(el.atomicNumber).slice(0,3)}</span>
                       </div>
                     );
                   })}
@@ -1280,9 +1283,10 @@ export default function Game() {
                     return (
                       <div key={el.atomicNumber}
                         className={`flex flex-col items-center justify-center rounded ${found ? "" : "opacity-15"}`}
-                        style={{ background: found ? clr.fill : "#27272a", aspectRatio: "1", padding: "1px" }}>
-                        <span style={{ fontSize: "4px", color: found ? "rgba(255,255,255,0.5)" : "#555", lineHeight: 1 }}>{el.atomicNumber}</span>
-                        <span style={{ fontSize: "6px", fontWeight: 700, color: found ? "#fff" : "#555", lineHeight: 1 }}>{el.symbol}</span>
+                        style={{ background: found ? clr.fill : "#27272a", aspectRatio: "1" }}>
+                        <span style={{ fontSize: "3px", color: found ? "rgba(255,255,255,0.5)" : "#555", lineHeight: 1 }}>{el.atomicNumber}</span>
+                        <span style={{ fontSize: "5px", fontWeight: 700, color: found ? "#fff" : "#555", lineHeight: 1 }}>{el.symbol}</span>
+                        <span style={{ fontSize: "3px", color: found ? "rgba(255,255,255,0.4)" : "#444", lineHeight: 1 }}>{getKrName(el.atomicNumber).slice(0,3)}</span>
                       </div>
                     );
                   })}
