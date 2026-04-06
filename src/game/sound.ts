@@ -52,6 +52,34 @@ export function sndBlockBreak() {
   });
 }
 
+/** Metal clang for Fe/Ti */
+export function sndMetal() {
+  play((c, t) => {
+    // High metallic ping
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = "triangle";
+    o.frequency.setValueAtTime(1800, t);
+    o.frequency.exponentialRampToValueAtTime(800, t + 0.15);
+    g.gain.setValueAtTime(0.18, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    o.connect(g).connect(c.destination);
+    o.start(t);
+    o.stop(t + 0.2);
+    // Low metallic thud
+    const o2 = c.createOscillator();
+    const g2 = c.createGain();
+    o2.type = "sine";
+    o2.frequency.setValueAtTime(150, t);
+    o2.frequency.exponentialRampToValueAtTime(60, t + 0.15);
+    g2.gain.setValueAtTime(0.15, t);
+    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    o2.connect(g2).connect(c.destination);
+    o2.start(t);
+    o2.stop(t + 0.15);
+  });
+}
+
 /** Boom for explosive elements */
 export function sndExplosion() {
   play((c, t) => {
