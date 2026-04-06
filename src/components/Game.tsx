@@ -11,6 +11,7 @@ import {
 import { executeEffect, type BlockRuntime, type GameState } from "@/game/effects";
 import { VfxManager } from "@/game/vfx";
 import { getFlavorText } from "@/game/elementFlavor";
+import { saveRank, getTopRanks, type RankEntry } from "@/game/firebase";
 import {
   sndPaddle, sndBlockBreak, sndExplosion, sndRadioactive,
   sndCombo, sndPowerup, sndLifeLost,
@@ -137,6 +138,9 @@ export default function Game() {
 
   const [bgmVol, setBgmVol] = useState(0.3);
   const [showVolume, setShowVolume] = useState(false);
+  const [playerName, setPlayerName] = useState("");
+  const [rankSaved, setRankSaved] = useState(false);
+  const [rankings, setRankings] = useState<RankEntry[]>([]);
   const [level, setLevel] = useState(1);
   const [timeLeft, setTimeLeft] = useState(LEVEL_TIMES[0]);
 
@@ -276,6 +280,7 @@ export default function Game() {
     setBlocksLeft(DESTROYABLE_COUNT);
     setScore(0);
     setLives(LIVES);
+    setRankSaved(false);
     // Restart physics runner if stopped
     if (runnerRef.current && engineRef.current) Matter.Runner.run(runnerRef.current, engineRef.current);
     resetBall();
@@ -345,6 +350,11 @@ export default function Game() {
       Matter.Runner.run(runner, engineRef.current);
       startBGM(levelRef.current);
     }
+  }, []);
+
+  // Load rankings
+  useEffect(() => {
+    getTopRanks(10).then(setRankings).catch(() => {});
   }, []);
 
   // Keyboard: Escape or P to toggle pause
@@ -1140,6 +1150,26 @@ export default function Game() {
             </button>
           ))}
         </div>
+        {/* Rankings */}
+        {rankings.length > 0 && (
+          <div className="w-full max-w-[300px] mt-4">
+            <p className="text-sm font-bold text-zinc-300 mb-2 text-center">🏆 TOP 10</p>
+            <div className="bg-zinc-900 rounded-lg border border-zinc-700 overflow-hidden">
+              {rankings.map((r, i) => (
+                <div key={i} className={`flex items-center justify-between px-3 py-1.5 text-xs ${i === 0 ? "bg-yellow-900/30" : i === 1 ? "bg-zinc-800/50" : i === 2 ? "bg-orange-900/20" : ""}`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-bold w-5 ${i === 0 ? "text-yellow-400" : i === 1 ? "text-zinc-300" : i === 2 ? "text-orange-400" : "text-zinc-500"}`}>{i + 1}</span>
+                    <span className="text-zinc-200">{r.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-zinc-500">Lv.{r.level}</span>
+                    <span className="font-mono font-bold text-indigo-400">{r.score.toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1302,6 +1332,26 @@ export default function Game() {
                     );
                   })}
                 </div>
+                {/* Ranking save */}
+                {!rankSaved ? (
+                  <div className="flex items-center gap-2 mb-2">
+                    <input type="text" maxLength={8} placeholder="이름 입력"
+                      value={playerName} onChange={(e) => setPlayerName(e.target.value)}
+                      className="px-2 py-1 text-sm bg-zinc-800 border border-zinc-600 rounded text-zinc-200 w-24 text-center" />
+                    <button onClick={async () => {
+                      if (!playerName.trim()) return;
+                      await saveRank({ name: playerName.trim(), score, level, discovered: collected.size });
+                      setRankSaved(true);
+                      const r = await getTopRanks(10);
+                      setRankings(r);
+                    }}
+                      className="px-3 py-1 text-sm bg-yellow-600 hover:bg-yellow-500 text-white font-semibold rounded transition-colors">
+                      등록
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-emerald-400 mb-2">랭킹 등록 완료!</p>
+                )}
                 <button onClick={restartGame}
                   className="px-5 py-2 text-sm sm:text-base bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)]">
                   RESTART
