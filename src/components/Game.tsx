@@ -316,14 +316,14 @@ export default function Game() {
         const existingTexts = floatingTextsRef.current;
         let ty = GH * 0.45;
         for (const ft of existingTexts) {
-          if (Math.abs(ft.y - ty) < 20) ty += 20;
+          if (Math.abs(ft.y - ty) < 22) ty += 22;
         }
         existingTexts.push({
           text: getFlavorText(blk.id),
           x: GW / 2,
           y: ty,
-          life: 50,
-          maxLife: 50,
+          life: 120,
+          maxLife: 120,
           color: colors?.border ?? "#ffffff",
         });
         // trigger this block's own effect (no area damage possible)
@@ -728,7 +728,7 @@ export default function Game() {
       for (let i = fts.length - 1; i >= 0; i--) {
         const ft = fts[i];
         ft.life -= 1;
-        ft.y -= 0.5; // float upward
+        ft.y -= 0.3; // float upward slowly
         if (ft.life <= 0) { fts.splice(i, 1); continue; }
         const progress = ft.life / ft.maxLife;
         // Fade in for first 20%, stay, fade out last 30%
