@@ -109,6 +109,7 @@ export default function Game() {
   const [combo, setCombo] = useState(0);
   const [collected, setCollected] = useState<Set<number>>(new Set());
   const [showCollection, setShowCollection] = useState(false);
+  const [selectedElement, setSelectedElement] = useState<number | null>(null);
 
   const livesRef = useRef(LIVES);
   const scoreRef = useRef(0);
@@ -537,8 +538,9 @@ export default function Game() {
       }
 
       // Prevent horizontal stall — force ball downward toward paddle
-      if (Math.abs(b.velocity.y) < 2.5) {
-        const ny = 3.5; // strong downward push
+      // Check if ball is moving nearly horizontal (vy too small)
+      if (Math.abs(b.velocity.y) < sp * 0.4) {
+        const ny = sp * 0.6; // always push strongly downward
         const nx = Math.sign(b.velocity.x || 1) * Math.sqrt(Math.max(0, sp * sp - ny * ny));
         Matter.Body.setVelocity(b, { x: nx, y: ny });
       }
@@ -1029,14 +1031,21 @@ export default function Game() {
                 const colors = GROUP_COLORS[el.group];
                 return (
                   <div key={el.atomicNumber}
-                    className={`flex flex-col items-center justify-center rounded p-0.5 text-center ${found ? "" : "opacity-20"}`}
-                    style={{ background: found ? colors.fill : "#27272a", minHeight: "36px" }}>
+                    onClick={() => found ? setSelectedElement(el.atomicNumber === selectedElement ? null : el.atomicNumber) : null}
+                    className={`flex flex-col items-center justify-center rounded p-0.5 text-center ${found ? "cursor-pointer hover:brightness-125" : "opacity-20"}`}
+                    style={{ background: found ? colors.fill : "#27272a", minHeight: "36px", outline: selectedElement === el.atomicNumber ? "2px solid white" : "none" }}>
                     <span className="text-[8px] text-zinc-400">{el.atomicNumber}</span>
                     <span className="text-[10px] font-bold" style={{ color: found ? colors.text : "#71717a" }}>{el.symbol}</span>
                   </div>
                 );
               })}
             </div>
+            {/* Selected element detail */}
+            {selectedElement && collected.has(selectedElement) && (
+              <div className="mt-3 p-3 bg-zinc-800 rounded-lg text-center">
+                <p className="text-base font-bold text-zinc-100">{getFlavorText(selectedElement)}</p>
+              </div>
+            )}
           </div>
         )}
 
