@@ -660,50 +660,50 @@ export default function Game() {
   ];
 
   return (
-    <div className="flex flex-col items-center gap-3 select-none py-4">
+    <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto">
       {/* Title */}
-      <h1 className="text-3xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+      <h1 className="text-xl sm:text-3xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
         PERIODIC BREAKER
       </h1>
 
       {/* HUD */}
-      <div className="flex items-center justify-between w-full max-w-[560px] px-2 text-sm">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between w-full px-1 sm:px-2 text-xs sm:text-sm">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <span className="text-zinc-400 uppercase tracking-wide">Lives</span>
           <div className="flex gap-1">
             {Array.from({ length: LIVES }).map((_, i) => (
-              <span key={i} className={`w-3 h-3 rounded-full transition-colors duration-300 ${
+              <span key={i} className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-colors duration-300 ${
                 i < lives ? "bg-pink-500 shadow-[0_0_8px_rgba(244,114,182,0.6)]" : "bg-zinc-700"
               }`} />
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <span className="text-zinc-400 uppercase tracking-wide">Elements</span>
-            <span className="text-lg font-mono font-bold text-emerald-400">{blocksLeft}</span>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1">
+            <span className="text-zinc-400 uppercase tracking-wide">Elem</span>
+            <span className="text-base sm:text-lg font-mono font-bold text-emerald-400">{blocksLeft}</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <span className="text-zinc-400 uppercase tracking-wide">Score</span>
-            <span className="text-lg font-mono font-bold text-indigo-400">{score}</span>
+            <span className="text-base sm:text-lg font-mono font-bold text-indigo-400">{score}</span>
           </div>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap justify-center gap-2.5 text-xs max-w-[560px]">
+      <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2.5 text-[10px] sm:text-xs">
         {legend.map((l) => (
-          <span key={l.label} className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: l.color }} />
+          <span key={l.label} className="flex items-center gap-0.5 sm:gap-1">
+            <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm" style={{ background: l.color }} />
             {l.label}
           </span>
         ))}
       </div>
 
-      {/* Canvas */}
-      <div className="relative rounded-lg overflow-hidden shadow-[0_0_40px_rgba(99,102,241,0.15)]">
+      {/* Canvas – scales to fit viewport width */}
+      <div className="relative rounded-lg overflow-hidden shadow-[0_0_40px_rgba(99,102,241,0.15)] w-full">
         <canvas ref={canvasRef} width={GW} height={GH}
-          className="block cursor-none max-w-full"
+          className="block w-full h-auto cursor-none touch-none"
           style={{ aspectRatio: `${GW}/${GH}` }} />
 
         {/* Overlays – pointer-events only on buttons, pass clicks to canvas */}
@@ -711,27 +711,27 @@ export default function Game() {
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-none">
             {stageClear ? (
               <>
-                <p className="text-3xl font-bold text-emerald-400 mb-1">Stage Clear!</p>
-                <p className="text-zinc-300 mb-4">118개 원소를 모두 정복했습니다!</p>
-                <p className="text-zinc-400 mb-4">Final Score: <span className="text-indigo-400 font-bold">{score}</span></p>
+                <p className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">Stage Clear!</p>
+                <p className="text-sm sm:text-base text-zinc-300 mb-3 sm:mb-4">118개 원소를 모두 정복했습니다!</p>
+                <p className="text-sm text-zinc-400 mb-3 sm:mb-4">Final Score: <span className="text-indigo-400 font-bold">{score}</span></p>
                 <button onClick={restartGame}
-                  className="pointer-events-auto px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                  className="pointer-events-auto px-5 py-2 text-sm sm:text-base bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)]">
                   다시 시작
                 </button>
               </>
             ) : gameOver ? (
               <>
-                <p className="text-4xl font-bold text-red-400 mb-2">GAME OVER</p>
-                <p className="text-zinc-400 mb-4">Final Score: <span className="text-indigo-400 font-bold">{score}</span></p>
+                <p className="text-3xl sm:text-4xl font-bold text-red-400 mb-2">GAME OVER</p>
+                <p className="text-sm text-zinc-400 mb-3 sm:mb-4">Final Score: <span className="text-indigo-400 font-bold">{score}</span></p>
                 <button onClick={restartGame}
-                  className="pointer-events-auto px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)]">
+                  className="pointer-events-auto px-5 py-2 text-sm sm:text-base bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)]">
                   RESTART
                 </button>
               </>
             ) : (
               <>
-                <p className="text-xl text-zinc-300 mb-1 animate-pulse">Click or Tap to Launch</p>
-                <p className="text-sm text-zinc-500">Move mouse or drag to control paddle</p>
+                <p className="text-base sm:text-xl text-zinc-300 mb-1 animate-pulse">Tap to Launch</p>
+                <p className="text-xs sm:text-sm text-zinc-500">터치로 패들을 조작하세요</p>
               </>
             )}
           </div>
