@@ -10,6 +10,7 @@ import {
 } from "@/game/elements";
 import { executeEffect, type BlockRuntime, type GameState } from "@/game/effects";
 import { VfxManager } from "@/game/vfx";
+import { getFlavorText } from "@/game/elementFlavor";
 
 // ── Constants ─────────────────────────────────────────────
 const GW = 560;
@@ -29,6 +30,15 @@ const BT = 20; // top offset
 const LN_GAP = 8; // extra gap before lanthanide/actinide rows
 const CAT = { WALL: 0x0001, PADDLE: 0x0002, BALL: 0x0004, BLOCK: 0x0008 };
 // No chain explosions — blocks only destroyed by ball
+
+interface FloatingText {
+  text: string;
+  x: number;
+  y: number;
+  life: number;
+  maxLife: number;
+  color: string;
+}
 
 // ── Helpers ───────────────────────────────────────────────
 function blockPos(row: number, col: number) {
@@ -74,6 +84,7 @@ export default function Game() {
   const ballRef = useRef<Matter.Body | null>(null);
   const blocksRef = useRef<BlockRuntime[]>([]);
   const vfxRef = useRef(new VfxManager());
+  const floatingTextsRef = useRef<FloatingText[]>([]);
   const animRef = useRef(0);
   const draggingRef = useRef(false);
   const stateRef = useRef<GameState | null>(null);
@@ -187,6 +198,7 @@ export default function Game() {
     timedEffectsRef.current = [];
     gasZoneEndRef.current = 0;
     vfxRef.current.clear();
+    floatingTextsRef.current = [];
     setGameOver(false);
     setStageClear(false);
     setBlocksLeft(DESTROYABLE_COUNT);
@@ -298,6 +310,17 @@ export default function Game() {
         // score
         const points = blk.id * 10;
         scoreRef.current += Math.round(points * gs.scoreMultiplier);
+        // floating element info text
+        const el = ELEMENTS.find((e) => e.atomicNumber === blk.id);
+        const colors = el ? GROUP_COLORS[el.group] : null;
+        floatingTextsRef.current.push({
+          text: getFlavorText(blk.id),
+          x: GW / 2,
+          y: GH / 2,
+          life: 70,
+          maxLife: 70,
+          color: colors?.border ?? "#ffffff",
+        });
         // trigger this block's own effect (no area damage possible)
         executeEffect(blk.effect, blk, gs);
         syncUI();
@@ -523,7 +546,7 @@ export default function Game() {
         ctx.globalAlpha = blockAlpha;
 
         // Glow
-        ctx.shadowBlur = blk.group === "boss" ? 18 : 8;
+        ctx.shadowBlur = 8;
         ctx.shadowColor = isFrozen ? "rgba(56,189,248,0.6)" : colors.glow;
 
         // Fill
@@ -572,14 +595,7 @@ export default function Game() {
         ctx.textBaseline = "middle";
         ctx.fillText(el.symbol, blk.x, blk.y + 2);
 
-        // Boss pulsing border
-        if (blk.group === "boss") {
-          const t = performance.now() / 500;
-          ctx.strokeStyle = `rgba(251,146,60,${0.3 + Math.sin(t) * 0.2})`;
-          ctx.lineWidth = 2;
-          roundRect(ctx, bx - 1, by - 1, BW + 2, BH + 2, 4);
-          ctx.stroke();
-        }
+
       }
 
       // ── Trajectory guide ──
@@ -653,6 +669,33 @@ export default function Game() {
         ctx.shadowBlur = 0;
       }
 
+      // ── Floating element info texts ──
+      const fts = floatingTextsRef.current;
+      for (let i = fts.length - 1; i >= 0; i--) {
+        const ft = fts[i];
+        ft.life -= 1;
+        ft.y -= 0.5; // float upward
+        if (ft.life <= 0) { fts.splice(i, 1); continue; }
+        const progress = ft.life / ft.maxLife;
+        // Fade in for first 20%, stay, fade out last 30%
+        let alpha: number;
+        if (progress > 0.8) alpha = (1 - progress) / 0.2;      // fade in
+        else if (progress < 0.3) alpha = progress / 0.3;        // fade out
+        else alpha = 1;
+
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = ft.color;
+        ctx.font = "bold 14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        // Shadow for readability
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = "rgba(0,0,0,0.8)";
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      }
+
       animRef.current = requestAnimationFrame(render);
     };
     animRef.current = requestAnimationFrame(render);
@@ -703,7 +746,6 @@ export default function Game() {
     { label: "Utility", color: "#8b5cf6" },
     { label: "Debuff", color: "#65a30d" },
     { label: "Score", color: "#eab308" },
-    { label: "Boss", color: "#ea580c" },
   ];
 
   return (

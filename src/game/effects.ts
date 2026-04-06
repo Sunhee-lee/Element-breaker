@@ -371,13 +371,3 @@ register("score_block", (block, state) => {
   state.spawnVfx("score_glow", block.x, block.y, { bonus });
 });
 
-// ────────────────────────────────────────────────────────────
-//  BOSS
-// ────────────────────────────────────────────────────────────
-
-register("boss_core", (block, state) => {
-  state.spawnVfx("boss_shatter", block.x, block.y);
-  if (block.params.clearOnBreak) {
-    state.stageClear = true;
-  }
-});

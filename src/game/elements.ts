@@ -13,9 +13,9 @@ import { BASE_ELEMENTS, type ElementCategory, type BaseElement } from "./element
 // ── Re-exports for backward compatibility ─────────────────
 export type { ElementCategory } from "./elementBaseData";
 
-export type ElementGroup = "attack" | "defense" | "utility" | "debuff" | "score" | "boss";
+export type ElementGroup = "attack" | "defense" | "utility" | "debuff" | "score";
 
-export type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary" | "boss";
+export type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
 export type VfxKey =
   | "explosion_red" | "explosion_orange" | "chain_lightning" | "fast_explosion"
@@ -82,7 +82,6 @@ export const GROUP_COLORS: Record<
   utility: { fill: "#8b5cf6", glow: "rgba(139,92,246,0.5)", text: "#ede9fe", border: "#a78bfa" },
   debuff:  { fill: "#65a30d", glow: "rgba(101,163,13,0.5)", text: "#ecfccb", border: "#84cc16" },
   score:   { fill: "#eab308", glow: "rgba(234,179,8,0.5)",  text: "#fef9c3", border: "#facc15" },
-  boss:    { fill: "#ea580c", glow: "rgba(234,88,12,0.6)",  text: "#fed7aa", border: "#fb923c" },
 };
 
 // ────────────────────────────────────────────────────────────
@@ -259,8 +258,8 @@ const OVERRIDES: Record<number, PartialOverride> = {
   12: { group: "score", effect: "flash_bonus",  vfx: "flash_white", params: { bonus: 500 } },
   79: { group: "score", effect: "flash_bonus",  vfx: "flash_white", rarity: "legendary", params: { bonus: 2000 } },
 
-  // ── BOSS ──
-  20: { group: "boss", effect: "boss_core", vfx: "boss_shatter", durability: 5, rarity: "boss", params: { clearOnBreak: true } },
+  // Ca — was boss, now alkaline earth defense
+  20: { group: "defense", effect: "shard_splash", vfx: "shard_splash", durability: 2, rarity: "uncommon", params: { shardCount: 6, range: 40 } },
 };
 
 // ────────────────────────────────────────────────────────────
