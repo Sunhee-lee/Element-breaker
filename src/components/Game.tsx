@@ -33,7 +33,7 @@ const MULTIBALL_ELEMENTS = new Set([118, 117, 116]); // Og, Ts, Lv
 const BASE_SPEED = 6;
 
 // Level configs
-const LEVEL_TIME = 120; // 2 minutes per level
+const LEVEL_TIME = 300; // 5 minutes per level
 const LEVEL_SPEED = [BASE_SPEED, BASE_SPEED * 1.4, BASE_SPEED * 1.8]; // L1, L2, L3
 const LEVEL_BG: string[] = ["#0f0f1a", "#0f1a14", "#1a0f1a"]; // dark blue, dark green, dark purple
 const LEVEL_BLOCK_ALPHA: number[] = [1, 1.2, 1.4]; // block color intensity multiplier
@@ -508,10 +508,14 @@ export default function Game() {
         const remaining = Math.max(0, LEVEL_TIME - elapsed);
         setTimeLeft(Math.ceil(remaining));
         if (remaining <= 0) {
-          // Time up = game over
+          // Time up = game over, stop everything
           goRef.current = true;
           setGameOver(true);
           if (ballRef.current) Matter.Body.setVelocity(ballRef.current, { x: 0, y: 0 });
+          for (const mb of multiBallsRef.current) {
+            Matter.Body.setVelocity(mb.body, { x: 0, y: 0 });
+          }
+          syncUI();
           return;
         }
       }
@@ -1125,8 +1129,8 @@ export default function Game() {
                 닫기
               </button>
             </div>
-            {/* Selected element detail — above grid */}
-            {selectedElement && collected.has(selectedElement) && (
+            {/* Selected element detail — above grid if element is in top half, below if bottom */}
+            {selectedElement && collected.has(selectedElement) && (ELEMENTS.find(e => e.atomicNumber === selectedElement)?.atomicNumber ?? 0) <= 59 && (
               <div className="mb-2 p-2 bg-zinc-800 rounded-lg text-center">
                 <p className="text-sm font-bold text-zinc-100">{getFlavorText(selectedElement)}</p>
               </div>
@@ -1146,6 +1150,12 @@ export default function Game() {
                 );
               })}
             </div>
+            {/* Detail below grid for bottom-half elements */}
+            {selectedElement && collected.has(selectedElement) && (ELEMENTS.find(e => e.atomicNumber === selectedElement)?.atomicNumber ?? 0) > 59 && (
+              <div className="mt-2 p-2 bg-zinc-800 rounded-lg text-center">
+                <p className="text-sm font-bold text-zinc-100">{getFlavorText(selectedElement)}</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -1186,14 +1196,28 @@ export default function Game() {
                 )}
               </div>
             ) : gameOver ? (
-              <>
+              <div className="flex flex-col items-center w-full max-h-full overflow-y-auto p-4 pointer-events-auto">
                 <p className="text-3xl sm:text-4xl font-bold text-red-400 mb-2">{timeLeft <= 0 ? "TIME UP!" : "GAME OVER"}</p>
-                <p className="text-sm text-zinc-400 mb-3 sm:mb-4">Final Score: <span className="text-indigo-400 font-bold">{score}</span></p>
+                <p className="text-sm text-zinc-400 mb-2">Score: <span className="text-indigo-400 font-bold">{score}</span> | 발견: {collected.size}/118</p>
+                {/* Mini collection grid */}
+                <div className="grid grid-cols-9 gap-0.5 mb-3 w-full max-w-[360px]">
+                  {ELEMENTS.map((el) => {
+                    const found = collected.has(el.atomicNumber);
+                    const clr = GROUP_COLORS[el.group];
+                    return (
+                      <div key={el.atomicNumber}
+                        className={`flex items-center justify-center rounded ${found ? "" : "opacity-15"}`}
+                        style={{ background: found ? clr.fill : "#27272a", height: "20px", fontSize: "8px", color: found ? clr.text : "#555" }}>
+                        {el.symbol}
+                      </div>
+                    );
+                  })}
+                </div>
                 <button onClick={restartGame}
-                  className="pointer-events-auto px-5 py-2 text-sm sm:text-base bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)]">
+                  className="px-5 py-2 text-sm sm:text-base bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)]">
                   RESTART
                 </button>
-              </>
+              </div>
             ) : (
               <>
                 <p className="text-base sm:text-xl text-zinc-300 mb-1 animate-pulse">Tap to Launch</p>
