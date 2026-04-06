@@ -1213,8 +1213,8 @@ export default function Game() {
                 닫기
               </button>
             </div>
-            {/* 18-column periodic table — fills available space */}
-            <div className="flex-1" style={{ display: "grid", gridTemplateColumns: "repeat(18, 1fr)", gridTemplateRows: "repeat(9, 1fr)", gap: "1px" }}>
+            {/* 18-column periodic table — fills available space, no overflow */}
+            <div className="flex-1 w-full max-w-full overflow-hidden" style={{ display: "grid", gridTemplateColumns: "repeat(18, 1fr)", gridTemplateRows: "repeat(9, 1fr)", gap: "1px" }}>
               {Array.from({ length: 9 * 18 }, (_, i) => {
                 const row = Math.floor(i / 18) + 1;
                 const col = (i % 18) + 1;
@@ -1246,7 +1246,7 @@ export default function Game() {
                 <p className="text-sm text-zinc-400 mb-1">Score: <span className="text-indigo-400 font-bold">{score}</span></p>
                 <p className="text-xs text-zinc-500 mb-2">이번 레벨 발견: {levelCollected.size}개 | 전체: {collected.size}/118</p>
                 {/* This level's collection grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(18, 1fr)", gap: "1px" }} className="mb-3 w-full">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(18, 1fr)", gap: "1px" }} className="mb-3 w-full max-w-full overflow-hidden">
                   {Array.from({ length: 9 * 18 }, (_, i) => {
                     const r = Math.floor(i / 18) + 1, c = (i % 18) + 1;
                     const el = ELEMENTS.find(e => e.row === r && e.col === c);
@@ -1285,7 +1285,7 @@ export default function Game() {
                 <p className="text-sm text-zinc-400 mb-1">Level {level} | Score: <span className="text-indigo-400 font-bold">{score}</span></p>
                 <p className="text-xs text-zinc-500 mb-2">이번 레벨 발견: {levelCollected.size}개 | 전체: {collected.size}/118</p>
                 {/* This level's collection grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(18, 1fr)", gap: "1px" }} className="mb-3 w-full">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(18, 1fr)", gap: "1px" }} className="mb-3 w-full max-w-full overflow-hidden">
                   {Array.from({ length: 9 * 18 }, (_, i) => {
                     const r = Math.floor(i / 18) + 1, c = (i % 18) + 1;
                     const el = ELEMENTS.find(e => e.row === r && e.col === c);
