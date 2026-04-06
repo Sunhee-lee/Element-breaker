@@ -448,6 +448,8 @@ export default function Game() {
             x: Math.cos(angle) * sp,
             y: Math.sin(angle) * sp,
           });
+          // Reset radioactive pierce on paddle hit
+          gs.ball.pierce = false;
           continue;
         }
 
@@ -654,14 +656,34 @@ export default function Game() {
           ctx.shadowBlur = 0;
         }
 
+        const isPiercing = gs.ball.pierce;
+
+        // Neon glow aura when radioactive pierce is active
+        if (isPiercing) {
+          ctx.shadowBlur = 30;
+          ctx.shadowColor = "rgba(74,222,128,0.9)";
+          ctx.fillStyle = "rgba(74,222,128,0.12)";
+          ctx.beginPath();
+          ctx.arc(b.position.x, b.position.y, br + 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+
         ctx.shadowBlur = 25;
-        ctx.shadowColor = "rgba(244,114,182,0.8)";
+        ctx.shadowColor = isPiercing
+          ? "rgba(74,222,128,0.9)"
+          : "rgba(244,114,182,0.8)";
         const bg = ctx.createRadialGradient(
           b.position.x - 2, b.position.y - 2, 0,
           b.position.x, b.position.y, br,
         );
-        bg.addColorStop(0, "#fbbf24");
-        bg.addColorStop(1, "#f472b6");
+        if (isPiercing) {
+          bg.addColorStop(0, "#4ade80");
+          bg.addColorStop(1, "#22c55e");
+        } else {
+          bg.addColorStop(0, "#fbbf24");
+          bg.addColorStop(1, "#f472b6");
+        }
         ctx.fillStyle = bg;
         ctx.beginPath();
         ctx.arc(b.position.x, b.position.y, br, 0, Math.PI * 2);

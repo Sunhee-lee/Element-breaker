@@ -93,17 +93,17 @@ export function executeEffect(effectName: string, block: BlockRuntime, state: Ga
 //  ATTACK — ball buff effects (no area damage)
 // ────────────────────────────────────────────────────────────
 
-/** Ball pierces through blocks without bouncing */
-register("ball_pierce", (block, state) => {
-  const dur = block.params.duration ?? 2000;
+/** Radioactive: ball turns neon and pierces through all blocks until it hits the paddle */
+register("radioactive_pierce", (block, state) => {
   state.ball.pierce = true;
-  state.ball.pierceEnd = state.now + dur;
-  state.spawnVfx("explosion_red", block.x, block.y, { radius: 30 });
-  state.timedEffects.push({
-    key: "ball_pierce",
-    endTime: state.now + dur,
-    revert: () => { state.ball.pierce = false; },
-  });
+  // No timer — resets only when ball hits paddle
+  state.spawnVfx("radiation_burst", block.x, block.y, { radius: 40 });
+});
+
+/** Explosive: visual explosion burst (no area damage) */
+register("explosion", (block, state) => {
+  state.spawnVfx("explosion_red", block.x, block.y, { radius: 50 });
+  state.spawnVfx("fast_explosion", block.x, block.y, { radius: 30 });
 });
 
 /** Ball deals double damage to blocks */

@@ -102,14 +102,12 @@ interface CategoryRule {
 const CATEGORY_RULES: Record<ElementCategory, CategoryRule> = {
   alkali_metal: {
     group: "attack",
-    effect: "ball_power",
+    effect: "explosion",
     vfx: "explosion_orange",
     baseDurability: 1,
     durabilityScale: 0,
     baseRarity: "uncommon",
-    buildParams: (el) => ({
-      duration: 1500 + el.period * 300,
-    }),
+    buildParams: () => ({}),
   },
   alkaline_earth_metal: {
     group: "defense",
@@ -203,14 +201,12 @@ const CATEGORY_RULES: Record<ElementCategory, CategoryRule> = {
   },
   actinide: {
     group: "attack",
-    effect: "ball_pierce",
+    effect: "radioactive_pierce",
     vfx: "radiation_burst",
     baseDurability: 1,
     durabilityScale: 0.1,
     baseRarity: "epic",
-    buildParams: (el) => ({
-      duration: 1500 + (el.z - 89) * 100,
-    }),
+    buildParams: () => ({}),
   },
 };
 
@@ -221,13 +217,15 @@ const CATEGORY_RULES: Record<ElementCategory, CategoryRule> = {
 type PartialOverride = Partial<Pick<ElementDef, "group" | "effect" | "vfx" | "durability" | "rarity" | "breakable">> & { params?: EffectParams };
 
 const OVERRIDES: Record<number, PartialOverride> = {
-  // ── ATTACK (ball buffs, no area damage) ──
-  1:  { group: "attack",  effect: "ball_pierce",  vfx: "explosion_red",    params: { duration: 2000 } },
-  3:  { group: "attack",  effect: "ball_power",   vfx: "chain_lightning",  params: { duration: 2500 } },
-  11: { group: "attack",  effect: "ball_power",   vfx: "explosion_orange", params: { duration: 3000 } },
-  19: { group: "attack",  effect: "ball_pierce",  vfx: "fast_explosion",   params: { duration: 3000 } },
-  92: { group: "attack",  effect: "ball_pierce",  vfx: "radiation_burst",  rarity: "legendary", durability: 3, params: { duration: 3500 } },
-  94: { group: "attack",  effect: "ball_speed",   vfx: "radiation_burst",  rarity: "legendary", durability: 3, params: { duration: 4000 } },
+  // ── ATTACK ──
+  // Explosive (H + alkali metals) — explosion VFX on destroy
+  1:  { group: "attack",  effect: "explosion",           vfx: "explosion_red" },
+  3:  { group: "attack",  effect: "explosion",           vfx: "explosion_red" },
+  11: { group: "attack",  effect: "explosion",           vfx: "explosion_orange" },
+  19: { group: "attack",  effect: "explosion",           vfx: "fast_explosion" },
+  // Radioactive — ball goes neon + pierce until paddle
+  92: { group: "attack",  effect: "radioactive_pierce",  vfx: "radiation_burst",  rarity: "legendary", durability: 2 },
+  94: { group: "attack",  effect: "radioactive_pierce",  vfx: "radiation_burst",  rarity: "legendary", durability: 2 },
 
   // ── DEFENSE ──
   4:  { group: "defense",  effect: "shard_splash",   vfx: "shard_splash",   durability: 2, params: { shardCount: 4, range: 50 } },
@@ -236,6 +234,12 @@ const OVERRIDES: Record<number, PartialOverride> = {
   26: { group: "defense",  effect: "metal_reflect",  vfx: "metal_reflect",  durability: 2, rarity: "rare", params: { reflectMultiplier: 1.3 } },
   47: { group: "defense",  effect: "sharp_reflect",  vfx: "sharp_reflect",  durability: 2, rarity: "epic", params: { reflectMultiplier: 1.35 } },
   82: { group: "defense",  effect: "heavy_block",    vfx: "heavy_impact",   durability: 3, rarity: "epic", params: { speedReduction: 0.7 } },
+  // Radioactive main-group elements
+  84: { group: "attack",  effect: "radioactive_pierce", vfx: "radiation_burst" },
+  85: { group: "attack",  effect: "radioactive_pierce", vfx: "radiation_burst" },
+  86: { group: "attack",  effect: "radioactive_pierce", vfx: "radiation_burst" },
+  87: { group: "attack",  effect: "radioactive_pierce", vfx: "radiation_burst" },
+  88: { group: "attack",  effect: "radioactive_pierce", vfx: "radiation_burst" },
 
   // ── UTILITY ──
   2:  { group: "utility",  effect: "lift",             vfx: "lift_white",      params: { upwardBoost: 1.5, duration: 1200 } },
