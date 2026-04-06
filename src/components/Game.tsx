@@ -531,7 +531,14 @@ export default function Game() {
       // Sync gs ← refs
       ballSpeedRef.current = gs.ball.speed;
       ballRadiusRef.current = gs.ball.radius;
-      paddleWRef.current = gs.paddle.width;
+      // Resize paddle physics body if width changed
+      const newPW = gs.paddle.width;
+      const oldPW = paddleWRef.current;
+      if (Math.abs(newPW - oldPW) > 0.5 && paddleRef.current) {
+        const scaleX = newPW / oldPW;
+        Matter.Body.scale(paddleRef.current, scaleX, 1);
+      }
+      paddleWRef.current = newPW;
       paddleSpeedMultRef.current = gs.paddle.speedMultiplier;
       floorShieldEndRef.current = gs.floorShieldEnd;
       trajectoryEndRef.current = gs.trajectoryEnd;
