@@ -1265,7 +1265,8 @@ export default function Game() {
           </p>
 
           {/* Version */}
-          <p className="text-[9px] text-white/30">버전 1.0</p>
+          <div className="mt-4" />
+          <p className="text-[9px] text-white/30">버전 1.0.1</p>
         </div>
       </div>
     );
