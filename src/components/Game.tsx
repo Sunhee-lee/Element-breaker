@@ -1201,8 +1201,8 @@ export default function Game() {
   if (!difficulty) {
     const bestScore = homeTop3[0]?.score;
     return (
-      <div className="relative flex flex-col items-center justify-end min-h-screen select-none max-w-[560px] mx-auto"
-        style={{ backgroundImage: "url('/Title_image.png')", backgroundSize: "100% 100%", backgroundPosition: "center" }}>
+      <div className="relative flex flex-col items-center justify-end min-h-screen w-full select-none"
+        style={{ backgroundImage: "url('/Title_image.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
         {/* Dark gradient overlay — stronger at bottom for UI readability */}
         <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.85) 100%)" }} />
 
