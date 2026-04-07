@@ -937,7 +937,7 @@ export default function Game() {
         // Atomic number (top-left, tiny)
         ctx.fillStyle = colors.text;
         ctx.globalAlpha = 0.45;
-        ctx.font = "bold 6px sans-serif";
+        ctx.font = "bold 6px Pretendard, sans-serif";
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
         ctx.fillText(String(el.atomicNumber), bx + 1, by + 1);
@@ -945,7 +945,7 @@ export default function Game() {
 
         // Symbol (center)
         ctx.fillStyle = colors.text;
-        ctx.font = "bold 10px sans-serif";
+        ctx.font = "bold 10px Pretendard, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(el.symbol, blk.x, blk.y + 2);
@@ -1052,7 +1052,7 @@ export default function Game() {
         // ☢ radiation symbol when pierce is active
         if (isPiercing) {
           ctx.fillStyle = "#052e16";
-          ctx.font = `bold ${Math.round(br * 1.4)}px sans-serif`;
+          ctx.font = `bold ${Math.round(br * 1.4)}px Pretendard, sans-serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText("☢", b.position.x, b.position.y);
@@ -1090,7 +1090,7 @@ export default function Game() {
 
         ctx.globalAlpha = alpha;
         ctx.fillStyle = ft.color;
-        ctx.font = "600 14px 'Noto Sans KR', sans-serif";
+        ctx.font = "600 14px Pretendard, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         // Shadow for readability
@@ -1214,9 +1214,10 @@ export default function Game() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 select-none px-4">
         {/* Title — slightly smaller */}
-        <h1 className="text-xl sm:text-3xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <h1 className="text-xl sm:text-3xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ fontFamily: "'Bungee', cursive" }}>
           Element Breaker
         </h1>
+        <p className="text-sm sm:text-lg text-zinc-400" style={{ fontFamily: "'Pretendard', sans-serif" }}>원소 브레이커</p>
 
         {/* START button — biggest, most prominent */}
         <button onClick={() => startWithDifficulty(homeTab)}
@@ -1264,7 +1265,7 @@ export default function Game() {
   return (
     <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto">
       {/* Title */}
-      <h1 className="text-xl sm:text-3xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <h1 className="text-xl sm:text-3xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ fontFamily: "'Bungee', cursive" }}>
         Element Breaker
       </h1>
 
