@@ -662,6 +662,11 @@ export default function Game() {
           gs.ball.pierce = false;
           gs.ball.metal = false;
           b.collisionFilter.mask = CAT.WALL | CAT.PADDLE | CAT.BLOCK;
+          // Remove all multiballs
+          for (const mb of multiBallsRef.current) {
+            try { Matter.Composite.remove(engine.world, mb.body); } catch { /* */ }
+          }
+          multiBallsRef.current = [];
         }
         return;
       }
