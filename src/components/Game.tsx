@@ -1219,33 +1219,27 @@ export default function Game() {
             <span className="w-8 h-px bg-amber-500/50" />
           </div>
 
-          {/* PLAY button — main CTA */}
+          {/* PLAY button — image */}
           <button onClick={() => startWithDifficulty("normal")}
-            className="w-[60%] max-w-[280px] py-4 rounded-xl text-white font-bold text-3xl tracking-widest transition-all active:scale-95"
-            style={{
-              fontFamily: "'Bungee', cursive",
-              background: "linear-gradient(135deg, #f59e0b, #ea580c)",
-              border: "3px solid rgba(251,191,36,0.6)",
-              boxShadow: "0 0 25px rgba(245,158,11,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
-              animation: "pulse-glow-orange 2s ease-in-out infinite",
-            }}>
-            PLAY
+            className="transition-all active:scale-95 hover:brightness-110"
+            style={{ animation: "pulse-glow-orange 2s ease-in-out infinite" }}>
+            <img src="/Play_image.png" alt="PLAY" className="w-[55vw] max-w-[260px]" />
           </button>
 
-          {/* Ranking + Settings buttons */}
-          <div className="flex gap-3 w-[60%] max-w-[280px]">
+          {/* Ranking + Settings image buttons */}
+          <div className="flex gap-3">
             <button onClick={async () => {
               setRankingTab("normal");
               const r = await getTopRanks("normal", 50);
               setRankings(r);
               setShowFullRanking(true);
             }}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-blue-900/60 hover:bg-blue-800/70 border border-blue-500/40 backdrop-blur-sm text-blue-200 text-sm font-semibold transition-all">
-              🏆 <span>랭킹</span>
+              className="transition-all active:scale-95 hover:brightness-110">
+              <img src="/Rank_image.png" alt="랭킹" className="w-[25vw] max-w-[120px]" />
             </button>
             <button onClick={() => setShowVolume(!showVolume)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-blue-900/60 hover:bg-blue-800/70 border border-blue-500/40 backdrop-blur-sm text-blue-200 text-sm font-semibold transition-all">
-              ⚙ <span>설정</span>
+              className="transition-all active:scale-95 hover:brightness-110">
+              <img src="/Setting_image.png" alt="설정" className="w-[25vw] max-w-[120px]" />
             </button>
           </div>
           {showVolume && (
@@ -1270,8 +1264,7 @@ export default function Game() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto min-h-screen"
-      style={{ backgroundImage: "url('/Game_imange.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+    <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto min-h-screen bg-black">
       {/* Title */}
       <h1 className="text-xl sm:text-3xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ fontFamily: "'Bungee', cursive" }}>
         Element Breaker
