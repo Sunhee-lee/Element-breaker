@@ -115,6 +115,7 @@ function roundRect(
 // ══════════════════════════════════════════════════════════
 export default function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const touchPadRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
   const runnerRef = useRef<Matter.Runner | null>(null);
   const paddleRef = useRef<Matter.Body | null>(null);
@@ -1150,6 +1151,16 @@ export default function Game() {
     canvas.addEventListener("touchmove", onTM, { passive: false });
     canvas.addEventListener("touchend", onTE, { passive: false });
 
+    // Touch pad below canvas — same handlers
+    const tp = touchPadRef.current;
+    if (tp) {
+      tp.addEventListener("mousemove", onMM);
+      tp.addEventListener("mousedown", onMD);
+      tp.addEventListener("touchstart", onTS, { passive: false });
+      tp.addEventListener("touchmove", onTM, { passive: false });
+      tp.addEventListener("touchend", onTE, { passive: false });
+    }
+
     return () => {
       stopBGM();
       cancelAnimationFrame(animRef.current);
@@ -1160,6 +1171,13 @@ export default function Game() {
       canvas.removeEventListener("touchstart", onTS);
       canvas.removeEventListener("touchmove", onTM);
       canvas.removeEventListener("touchend", onTE);
+      if (tp) {
+        tp.removeEventListener("mousemove", onMM);
+        tp.removeEventListener("mousedown", onMD);
+        tp.removeEventListener("touchstart", onTS);
+        tp.removeEventListener("touchmove", onTM);
+        tp.removeEventListener("touchend", onTE);
+      }
     };
   }, [launchBall, resetBall, createBlocks, syncUI, difficulty]);
 
@@ -1305,7 +1323,7 @@ export default function Game() {
           </span>
           <div className="flex items-center gap-1">
             <span className="text-zinc-400 uppercase tracking-wide">Score</span>
-            <span className="text-base sm:text-lg font-mono font-bold text-indigo-400">{score}</span>
+            <span className="text-base sm:text-lg font-mono font-bold text-indigo-400">{score.toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -1383,7 +1401,7 @@ export default function Game() {
             {stageClear ? (
               <div className="flex flex-col items-center w-full max-h-full overflow-y-auto p-4 pointer-events-auto">
                 <p className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">Level {level} Clear!</p>
-                <p className="text-sm text-zinc-400 mb-1">Score: <span className="text-indigo-400 font-bold">{score}</span></p>
+                <p className="text-sm text-zinc-400 mb-1">Score: <span className="text-indigo-400 font-bold">{score.toLocaleString()}</span></p>
                 <p className="text-xs text-zinc-500 mb-2">이번 레벨 발견: {levelCollected.size}개 | 전체: {collected.size}/118</p>
                 {/* This level's collection grid */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(18, 1fr)", gap: "1px" }} className="mb-3 w-full max-w-full overflow-hidden">
@@ -1421,7 +1439,7 @@ export default function Game() {
             ) : gameOver ? (
               <div className="flex flex-col items-center w-full max-h-full overflow-y-auto p-4 pointer-events-auto">
                 <p className="text-3xl sm:text-4xl font-bold text-red-400 mb-2">{timeLeft <= 0 ? "TIME UP!" : "GAME OVER"}</p>
-                <p className="text-sm text-zinc-400 mb-1">Level {level} | Score: <span className="text-indigo-400 font-bold">{score}</span></p>
+                <p className="text-sm text-zinc-400 mb-1">Level {level} | Score: <span className="text-indigo-400 font-bold">{score.toLocaleString()}</span></p>
                 <p className="text-xs text-zinc-500 mb-2">이번 레벨 발견: {levelCollected.size}개 | 전체: {collected.size}/118</p>
                 {/* Periodic table — only before ranking save */}
                 {!rankSaved && (
@@ -1500,6 +1518,11 @@ export default function Game() {
           </div>
         )}
       </div>
+
+      {/* Touch pad — extra touch area below canvas for easier paddle control */}
+      <div ref={touchPadRef}
+        className="w-full h-16 sm:h-20 touch-none cursor-none bg-zinc-900/50 rounded-b-lg"
+        style={{ maxWidth: "560px" }} />
     </div>
   );
 }
