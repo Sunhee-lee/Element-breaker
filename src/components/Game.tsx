@@ -886,20 +886,26 @@ export default function Game() {
         const blockAlpha = 0.35 + hpRatio * 0.65;
         ctx.globalAlpha = blockAlpha;
 
-        // Glow — intensity from family palette
+        // Glow
         ctx.shadowBlur = levelRef.current <= 2 ? 6 : levelRef.current <= 4 ? 10 : 14;
         ctx.shadowColor = isFrozen ? "rgba(56,189,248,0.6)" : vs.glowColor;
 
-        // Fill
+        // Fill — level color
         ctx.fillStyle = isFrozen ? "#0ea5e9" : vs.fillColor;
         roundRect(ctx, bx, by, BW, BH, 3);
         ctx.fill();
 
-        // Border
+        // Border — family accent color
         ctx.shadowBlur = 0;
         ctx.strokeStyle = isFrozen ? "#38bdf8" : vs.borderColor;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = vs.borderWidth;
         ctx.stroke();
+
+        // Top accent bar — family identity stripe
+        if (!isFrozen) {
+          ctx.fillStyle = vs.accentColor;
+          ctx.fillRect(bx + 2, by, BW - 4, 2);
+        }
         ctx.globalAlpha = 1;
 
         // Durability indicator for multi-hp blocks
