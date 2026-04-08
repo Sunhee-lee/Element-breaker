@@ -35,9 +35,9 @@ const MULTIBALL_ELEMENTS = new Set([118, 117, 116]); // Og, Ts, Lv
 const BASE_SPEED = 6;
 
 // Level configs
-const LEVEL_TIMES = [420, 300, 180, 180, 180]; // L1:7m L2:5m L3-5:3m
-const LEVEL_SPEED = [BASE_SPEED, BASE_SPEED * 1.2, BASE_SPEED * 1.5, BASE_SPEED * 1.7, BASE_SPEED * 1.7];
-const LEVEL_PADDLE = [PADDLE_W, PADDLE_W, PADDLE_W, PADDLE_W * 0.8, PADDLE_W * 0.65]; // L4: 80px, L5: 65px
+const LEVEL_TIMES = [420, 300, 180, 180, 180, 120, 120]; // L1:7m L2:5m L3-5:3m L6-7:2m
+const LEVEL_SPEED = [BASE_SPEED, BASE_SPEED * 1.2, BASE_SPEED * 1.5, BASE_SPEED * 1.7, BASE_SPEED * 1.7, BASE_SPEED * 1.9, BASE_SPEED * 2.1];
+const LEVEL_PADDLE = [PADDLE_W, PADDLE_W, PADDLE_W, PADDLE_W * 0.8, PADDLE_W * 0.65, PADDLE_W * 0.6, PADDLE_W * 0.55];
 // Level color themes
 type LevelTheme = { hueShift: number; tintR: number; tintG: number; tintB: number };
 const LEVEL_THEMES: LevelTheme[] = [
@@ -46,6 +46,8 @@ const LEVEL_THEMES: LevelTheme[] = [
   { hueShift: 0, tintR: -20, tintG: 20, tintB: 80 },     // L3: blue/white ice tint
   { hueShift: 0, tintR: 40, tintG: -10, tintB: 50 },     // L4: purple tint
   { hueShift: 0, tintR: 50, tintG: 40, tintB: -30 },     // L5: yellow/gold tint
+  { hueShift: 0, tintR: -10, tintG: 50, tintB: 30 },     // L6: cyan/emerald tint
+  { hueShift: 0, tintR: 70, tintG: 10, tintB: 10 },      // L7: crimson/dark red tint
 ];
 const COLS = 18;
 const BG = 1;
@@ -297,7 +299,7 @@ export default function Game() {
     const engine = engineRef.current;
     if (!engine) return;
     const newLv = levelRef.current + 1;
-    if (newLv > 5) return; // max level 5
+    if (newLv > 7) return; // max level 7
     // Remove old blocks
     for (const b of blocksRef.current) {
       const body = (b as BlockRuntime & { body: Matter.Body }).body;
@@ -1299,10 +1301,8 @@ export default function Game() {
 
   return (
     <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto min-h-[100dvh] bg-black">
-      {/* Title */}
-      <h1 className="text-xl sm:text-3xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ fontFamily: "'Bungee', cursive" }}>
-        Element Breaker
-      </h1>
+      {/* Title image */}
+      <img src="/Title_inside.png" alt="Element Breaker" className="w-[70%] max-w-[400px] h-auto" />
 
       {/* HUD */}
       <div className="flex items-center justify-between w-full px-1 sm:px-2 text-xs sm:text-sm">
@@ -1421,7 +1421,7 @@ export default function Game() {
                     );
                   })}
                 </div>
-                {level < 5 ? (
+                {level < 7 ? (
                   <button onClick={nextLevel}
                     className="px-5 py-2 text-sm sm:text-base bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)] mb-2">
                     Level {level + 1} 시작
