@@ -163,11 +163,36 @@ export function sndPowerup() {
 //  Background Music — mp3 files per level
 // ────────────────────────────────────────────────────────────
 
+// ── Menu BGM (start screen) ──
+
+let menuAudio: HTMLAudioElement | null = null;
+
+export function startMenuBGM() {
+  stopMenuBGM();
+  try {
+    menuAudio = new Audio("/background.mp3");
+    menuAudio.loop = true;
+    menuAudio.volume = 0.3;
+    menuAudio.play().catch(() => { /* autoplay blocked */ });
+  } catch { /* */ }
+}
+
+export function stopMenuBGM() {
+  if (menuAudio) {
+    menuAudio.pause();
+    menuAudio.currentTime = 0;
+    menuAudio = null;
+  }
+}
+
+// ── Game BGM (per level) ──
+
 const BGM_SRCS = ["/level1.mp3", "/level2.mp3", "/level3.mp3", "/level4.mp3", "/level5.mp3", "/level6.mp3", "/level7.mp3"];
 let bgmAudio: HTMLAudioElement | null = null;
 
 export function startBGM(level: number) {
   stopBGM();
+  stopMenuBGM(); // stop menu music when game starts
   try {
     const idx = Math.max(0, Math.min(BGM_SRCS.length - 1, level - 1));
     bgmAudio = new Audio(BGM_SRCS[idx]);

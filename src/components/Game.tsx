@@ -16,7 +16,7 @@ import { getBlockVisualStyle } from "@/game/blockColors";
 import {
   sndPaddle, sndBlockBreak, sndExplosion, sndRadioactive,
   sndCombo, sndPowerup, sndLifeLost, sndMetal,
-  startBGM, stopBGM, setBGMVolume,
+  startBGM, stopBGM, setBGMVolume, startMenuBGM, stopMenuBGM,
 } from "@/game/sound";
 
 // ── Constants ─────────────────────────────────────────────
@@ -352,9 +352,13 @@ export default function Game() {
     }
   }, [difficulty]);
 
-  // Load home TOP 3
+  // Load home TOP 3 + start menu BGM
   useEffect(() => {
     getTopRanks("normal", 3).then(setHomeTop3).catch(() => {});
+    if (!difficulty) {
+      startMenuBGM();
+    }
+    return () => { stopMenuBGM(); };
   }, [difficulty]);
 
   // Keyboard: Escape or P to toggle pause
