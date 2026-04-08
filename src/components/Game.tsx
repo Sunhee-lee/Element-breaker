@@ -1323,7 +1323,7 @@ export default function Game() {
           </span>
           <div className="flex items-center gap-1">
             <span className="text-zinc-400 uppercase tracking-wide">Score</span>
-            <span className="text-base sm:text-lg font-mono font-bold text-indigo-400">{score}</span>
+            <span className="text-base sm:text-lg font-mono font-bold text-indigo-400">{score.toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -1401,7 +1401,7 @@ export default function Game() {
             {stageClear ? (
               <div className="flex flex-col items-center w-full max-h-full overflow-y-auto p-4 pointer-events-auto">
                 <p className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">Level {level} Clear!</p>
-                <p className="text-sm text-zinc-400 mb-1">Score: <span className="text-indigo-400 font-bold">{score}</span></p>
+                <p className="text-sm text-zinc-400 mb-1">Score: <span className="text-indigo-400 font-bold">{score.toLocaleString()}</span></p>
                 <p className="text-xs text-zinc-500 mb-2">이번 레벨 발견: {levelCollected.size}개 | 전체: {collected.size}/118</p>
                 {/* This level's collection grid */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(18, 1fr)", gap: "1px" }} className="mb-3 w-full max-w-full overflow-hidden">
@@ -1439,7 +1439,7 @@ export default function Game() {
             ) : gameOver ? (
               <div className="flex flex-col items-center w-full max-h-full overflow-y-auto p-4 pointer-events-auto">
                 <p className="text-3xl sm:text-4xl font-bold text-red-400 mb-2">{timeLeft <= 0 ? "TIME UP!" : "GAME OVER"}</p>
-                <p className="text-sm text-zinc-400 mb-1">Level {level} | Score: <span className="text-indigo-400 font-bold">{score}</span></p>
+                <p className="text-sm text-zinc-400 mb-1">Level {level} | Score: <span className="text-indigo-400 font-bold">{score.toLocaleString()}</span></p>
                 <p className="text-xs text-zinc-500 mb-2">이번 레벨 발견: {levelCollected.size}개 | 전체: {collected.size}/118</p>
                 {/* Periodic table — only before ranking save */}
                 {!rankSaved && (
