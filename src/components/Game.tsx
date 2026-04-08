@@ -1198,23 +1198,21 @@ export default function Game() {
         {/* Ranking list */}
         <div className="w-full max-w-[480px] max-h-[70vh] overflow-y-auto">
           {/* Header */}
-          <div className="w-full flex items-center justify-between px-4 py-1.5 text-[11px] text-zinc-500 border-b border-zinc-700">
-            <div className="flex items-center gap-3"><span className="w-6">순위</span><span>이름</span></div>
-            <div className="flex items-center gap-6"><span>레벨</span><span className="w-16 text-right">점수</span></div>
+          <div className="w-full flex items-center px-4 py-1.5 text-[11px] text-zinc-500 border-b border-zinc-700">
+            <span className="w-8">순위</span>
+            <span className="flex-1">이름</span>
+            <span className="w-10 text-center">레벨</span>
+            <span className="w-20 text-right">점수</span>
           </div>
           <div className="bg-zinc-900 rounded-lg border border-zinc-700 overflow-hidden">
             {Array.from({ length: Math.max(30, rankings.length) }, (_, i) => {
               const r = rankings[i];
               return (
-                <div key={i} className={`flex items-center justify-between px-4 py-2 text-sm ${i === 0 ? "bg-yellow-900/30" : i === 1 ? "bg-zinc-800/50" : i === 2 ? "bg-orange-900/20" : ""} ${i > 0 ? "border-t border-zinc-800" : ""}`}>
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 text-center">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span className="text-zinc-500 font-bold">{i + 1}</span>}</span>
-                    <span className="text-zinc-200">{r ? r.player_name : "---"}</span>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <span className="text-zinc-500 text-xs">{r ? `Lv.${r.level ?? 1}` : ""}</span>
-                    <span className="font-mono font-bold text-indigo-400 w-20 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{r ? r.score.toLocaleString() : "---"}</span>
-                  </div>
+                <div key={i} className={`flex items-center px-4 py-2 text-sm ${i === 0 ? "bg-yellow-900/30" : i === 1 ? "bg-zinc-800/50" : i === 2 ? "bg-orange-900/20" : ""} ${i > 0 ? "border-t border-zinc-800" : ""}`}>
+                  <span className="w-8 text-center">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span className="text-zinc-500 font-bold">{i + 1}</span>}</span>
+                  <span className="flex-1 text-zinc-200">{r ? r.player_name : "---"}</span>
+                  <span className="w-10 text-center text-zinc-500 text-xs">{r ? `Lv.${r.level ?? 1}` : ""}</span>
+                  <span className="w-20 text-right font-mono font-bold text-indigo-400" style={{ fontVariantNumeric: "tabular-nums" }}>{r ? r.score.toLocaleString() : "---"}</span>
                 </div>
               );
             })}
@@ -1276,7 +1274,11 @@ export default function Game() {
           {showSettings && (
             <div className="flex flex-col gap-2 w-[70%] max-w-[260px] p-4 rounded-xl" style={{ background: "rgba(20,25,50,0.9)", border: "1px solid rgba(180,210,255,0.2)" }}>
               <p className="text-center text-sm font-bold mb-1" style={{ color: "#DCE7FF" }}>설정</p>
-              <button onClick={() => { setBGMVolume(bgmVol > 0 ? 0 : 0.3); setBgmVol(bgmVol > 0 ? 0 : 0.3); }}
+              <button onClick={() => {
+                const newVol = bgmVol > 0 ? 0 : 0.3;
+                setBgmVol(newVol); setBGMVolume(newVol);
+                if (newVol === 0) stopMenuBGM(); else startMenuBGM();
+              }}
                 className="flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
                 <span>배경음</span>
                 <span style={{ color: bgmVol > 0 ? "#63F5C8" : "#FF6B6B" }}>{bgmVol > 0 ? "ON" : "OFF"}</span>
@@ -1294,7 +1296,7 @@ export default function Game() {
 
           {/* Best score + level info */}
           <p className="text-xs text-white/70 font-medium" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
-            현재 최고 점수: <span className="font-bold text-white">{bestScore != null ? bestScore.toLocaleString() : "---"}</span> | 레벨: <span className="font-bold text-white">1</span>
+            현재 최고 점수: <span className="font-bold text-white">{bestScore != null ? bestScore.toLocaleString() : "---"}</span> | 레벨: <span className="font-bold text-white">{homeTop3[0]?.level ?? "-"}</span>
           </p>
 
           {/* Version */}
