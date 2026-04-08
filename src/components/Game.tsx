@@ -1171,27 +1171,27 @@ export default function Game() {
   // Full ranking screen
   if (showFullRanking) {
     return (
-      <div className="flex flex-col items-center min-h-[100dvh] gap-4 select-none px-4 py-6">
+      <div className="flex flex-col items-center min-h-[100dvh] gap-4 select-none px-2 py-6 w-full">
         <h2 className="text-xl font-bold text-zinc-200">🏆 랭킹</h2>
         {/* Ranking list */}
-        <div className="w-full max-w-[320px] max-h-[60vh] overflow-y-auto">
+        <div className="w-full max-w-[480px] max-h-[70vh] overflow-y-auto">
           {/* Header */}
-          <div className="w-full flex items-center justify-between px-3 py-1 text-[10px] text-zinc-500 border-b border-zinc-700">
-            <div className="flex items-center gap-2"><span className="w-5" /><span>이름</span></div>
-            <div className="flex items-center gap-3"><span>레벨</span><span>점수</span></div>
+          <div className="w-full flex items-center justify-between px-4 py-1.5 text-[11px] text-zinc-500 border-b border-zinc-700">
+            <div className="flex items-center gap-3"><span className="w-6">#</span><span>이름</span></div>
+            <div className="flex items-center gap-6"><span>레벨</span><span className="w-16 text-right">점수</span></div>
           </div>
           <div className="bg-zinc-900 rounded-lg border border-zinc-700 overflow-hidden">
-            {Array.from({ length: Math.max(10, rankings.length) }, (_, i) => {
+            {Array.from({ length: Math.max(30, rankings.length) }, (_, i) => {
               const r = rankings[i];
               return (
-                <div key={i} className={`flex items-center justify-between px-3 py-1.5 text-xs ${i === 0 ? "bg-yellow-900/30" : i === 1 ? "bg-zinc-800/50" : i === 2 ? "bg-orange-900/20" : ""}`}>
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 text-center">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span className="text-zinc-500 font-bold">{i + 1}</span>}</span>
+                <div key={i} className={`flex items-center justify-between px-4 py-2 text-sm ${i === 0 ? "bg-yellow-900/30" : i === 1 ? "bg-zinc-800/50" : i === 2 ? "bg-orange-900/20" : ""} ${i > 0 ? "border-t border-zinc-800" : ""}`}>
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 text-center">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span className="text-zinc-500 font-bold">{i + 1}</span>}</span>
                     <span className="text-zinc-200">{r ? r.player_name : "---"}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-zinc-500 text-[10px]">{r ? `Lv.${r.level ?? 1}` : ""}</span>
-                    <span className="font-mono font-bold text-indigo-400">{r ? r.score.toLocaleString() : "---"}</span>
+                  <div className="flex items-center gap-6">
+                    <span className="text-zinc-500 text-xs">{r ? `Lv.${r.level ?? 1}` : ""}</span>
+                    <span className="font-mono font-bold text-indigo-400 w-16 text-right">{r ? r.score.toLocaleString() : "---"}</span>
                   </div>
                 </div>
               );
@@ -1211,7 +1211,7 @@ export default function Game() {
     const bestScore = homeTop3[0]?.score;
     return (
       <div className="relative flex flex-col items-center justify-end w-full select-none"
-        style={{ minHeight: "100dvh", backgroundImage: "url('/Title_image.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        style={{ minHeight: "100dvh", backgroundImage: "url('/Title_image.webp')", backgroundSize: "cover", backgroundPosition: "center" }}>
 
 
         {/* UI overlay — bottom section */}
