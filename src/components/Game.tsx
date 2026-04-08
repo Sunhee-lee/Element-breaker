@@ -124,6 +124,7 @@ export default function Game() {
   const [bgmVol, setBgmVol] = useState(0.3);
   const [showVolume, setShowVolume] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [sfxOn, setSfxOn] = useState(true);
   const [playerName, setPlayerName] = useState("");
   const [rankSaved, setRankSaved] = useState(false);
   const [rankings, setRankings] = useState<RankEntry[]>([]);
@@ -1207,7 +1208,7 @@ export default function Game() {
                   </div>
                   <div className="flex items-center gap-6">
                     <span className="text-zinc-500 text-xs">{r ? `Lv.${r.level ?? 1}` : ""}</span>
-                    <span className="font-mono font-bold text-indigo-400 w-16 text-right">{r ? r.score.toLocaleString() : "---"}</span>
+                    <span className="font-mono font-bold text-indigo-400 w-20 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{r ? r.score.toLocaleString() : "---"}</span>
                   </div>
                 </div>
               );
@@ -1275,9 +1276,9 @@ export default function Game() {
                 <span>배경음</span>
                 <span style={{ color: bgmVol > 0 ? "#63F5C8" : "#FF6B6B" }}>{bgmVol > 0 ? "ON" : "OFF"}</span>
               </button>
-              <button className="flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
+              <button onClick={() => setSfxOn(!sfxOn)} className="flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
                 <span>효과음</span>
-                <span style={{ color: "#63F5C8" }}>ON</span>
+                <span style={{ color: sfxOn ? "#63F5C8" : "#FF6B6B" }}>{sfxOn ? "ON" : "OFF"}</span>
               </button>
               <button onClick={() => setShowSettings(false)}
                 className="text-xs text-center mt-1" style={{ color: "rgba(220,231,255,0.4)" }}>
@@ -1379,9 +1380,9 @@ export default function Game() {
                 <span>배경음</span>
                 <span style={{ color: bgmVol > 0 ? "#63F5C8" : "#FF6B6B" }}>{bgmVol > 0 ? "ON" : "OFF"}</span>
               </button>
-              <button className="flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
+              <button onClick={() => setSfxOn(!sfxOn)} className="flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
                 <span>효과음</span>
-                <span style={{ color: "#63F5C8" }}>ON</span>
+                <span style={{ color: sfxOn ? "#63F5C8" : "#FF6B6B" }}>{sfxOn ? "ON" : "OFF"}</span>
               </button>
               <button onClick={() => { setShowSettings(false); restartGame(); }}
                 className="flex items-center justify-center px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
