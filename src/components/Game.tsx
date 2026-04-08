@@ -1295,16 +1295,25 @@ export default function Game() {
       {/* HUD */}
       {/* ── HUD ── */}
       <div className="flex items-start justify-between w-full px-2 py-1">
-        {/* Left: Lives + control icons */}
-        <div className="flex flex-col gap-1">
-          {/* Hearts */}
-          <div className="flex gap-0.5">
-            {Array.from({ length: LIVES }).map((_, i) => (
-              <span key={i} className="transition-colors duration-300"
-                style={{ fontSize: "21px", lineHeight: 1, color: i < lives ? "#7FB3FF" : "rgba(255,255,255,0.18)", textShadow: i < lives ? "0 0 6px rgba(127,179,255,0.5)" : "none" }}>
-                ♥
-              </span>
-            ))}
+        {/* Left: Lives (atom icons) + control buttons */}
+        <div className="flex flex-col gap-1.5">
+          {/* Atom lives */}
+          <div className="flex gap-1">
+            {Array.from({ length: LIVES }).map((_, i) => {
+              const active = i < lives;
+              return (
+                <svg key={i} width="19" height="19" viewBox="0 0 24 24" className="transition-opacity duration-300"
+                  style={{ opacity: active ? 1 : 0.18 }}>
+                  {/* Nucleus */}
+                  <circle cx="12" cy="12" r="3" fill={active ? "#7FB3FF" : "#555"} />
+                  {active && <circle cx="12" cy="12" r="3" fill="#7FB3FF" style={{ filter: "drop-shadow(0 0 4px rgba(127,179,255,0.6))" }} />}
+                  {/* Orbits */}
+                  <ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke={active ? "#B9D7FF" : "#444"} strokeWidth="1" opacity={active ? 0.6 : 0.3} />
+                  <ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke={active ? "#B9D7FF" : "#444"} strokeWidth="1" opacity={active ? 0.6 : 0.3} transform="rotate(60 12 12)" />
+                  <ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke={active ? "#B9D7FF" : "#444"} strokeWidth="1" opacity={active ? 0.6 : 0.3} transform="rotate(-60 12 12)" />
+                </svg>
+              );
+            })}
           </div>
           {/* Control icons */}
           {launched && (
@@ -1312,28 +1321,28 @@ export default function Game() {
               <button onClick={() => { stopBGM(); restartGame(); setDifficulty(null); }}
                 className="w-6 h-6 flex items-center justify-center rounded active:brightness-150"
                 style={{ background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#DCE7FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#DCE7FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
               </button>
               <button onClick={() => setShowVolume(!showVolume)}
                 className="w-6 h-6 flex items-center justify-center rounded active:brightness-150"
                 style={{ background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
                 {bgmVol > 0 ? (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#DCE7FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#DCE7FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg>
                 ) : (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke="#DCE7FF"/><line x1="23" y1="9" x2="17" y2="15" stroke="#FF6B6B"/><line x1="17" y1="9" x2="23" y2="15" stroke="#FF6B6B"/></svg>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke="#DCE7FF"/><line x1="22" y1="9" x2="16" y2="15" stroke="#FF6B6B"/><line x1="16" y1="9" x2="22" y2="15" stroke="#FF6B6B"/></svg>
                 )}
               </button>
               {!gameOver && !stageClear && !paused ? (
                 <button onClick={togglePause}
                   className="w-6 h-6 flex items-center justify-center rounded active:brightness-150"
                   style={{ background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
-                  <svg width="9" height="9" viewBox="0 0 14 14" fill="#DCE7FF"><rect x="2" y="1" width="3.5" height="12" /><rect x="8.5" y="1" width="3.5" height="12" /></svg>
+                  <svg width="8" height="8" viewBox="0 0 14 14" fill="#DCE7FF"><rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/></svg>
                 </button>
               ) : <div className="w-6" />}
               {showVolume && (
                 <input type="range" min="0" max="100" value={Math.round(bgmVol * 100)}
                   onChange={(e) => { const v = Number(e.target.value) / 100; setBgmVol(v); setBGMVolume(v); }}
-                  className="w-16 h-1 accent-blue-400" />
+                  className="w-14 h-1 accent-blue-400" />
               )}
             </div>
           )}
@@ -1341,17 +1350,15 @@ export default function Game() {
 
         {/* Right: Lv+Time (line1) + Score (line2) */}
         <div className="flex flex-col items-end">
-          {/* Line 1: Level + Time */}
-          <div className="flex items-center gap-3" style={{ fontVariantNumeric: "tabular-nums" }}>
-            <span style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.15, color: "#C9B7FF" }}>Lv.{level}</span>
-            <span style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.15, color: timeLeft <= 30 ? "#FF5A5F" : "#DCE7FF", fontVariantNumeric: "tabular-nums" }}>
+          <div className="flex items-baseline gap-3" style={{ fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.15, color: "#DCE7FF" }}>Lv.{level}</span>
+            <span style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.15, color: timeLeft <= 30 ? "#FF5A5F" : "#DCE7FF" }}>
               {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
             </span>
           </div>
-          {/* Line 2: Score */}
-          <div className="flex flex-col items-end mt-0.5">
-            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "1.5px", color: "rgba(220,231,255,0.62)", lineHeight: 1 }}>SCORE</span>
-            <span style={{ fontSize: "22px", fontWeight: 800, lineHeight: 1.05, color: "#F4F7FF", textShadow: "0 0 8px rgba(120,160,255,0.28)", fontVariantNumeric: "tabular-nums", minWidth: "90px", textAlign: "right" as const, display: "inline-block" }}>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "1.5px", color: "rgba(220,231,255,0.5)", lineHeight: 1 }}>SCORE</span>
+            <span style={{ fontSize: "22px", fontWeight: 800, lineHeight: 1, color: "#F4F7FF", textShadow: "0 0 8px rgba(120,160,255,0.28)", fontVariantNumeric: "tabular-nums", minWidth: "80px", textAlign: "right" as const, display: "inline-block" }}>
               {score.toLocaleString()}
             </span>
           </div>
