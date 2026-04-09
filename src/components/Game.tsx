@@ -1203,7 +1203,7 @@ export default function Game() {
   // Full ranking screen
   if (showFullRanking) {
     return (
-      <div className="flex flex-col items-center min-h-[100dvh] gap-4 select-none px-2 py-6 w-full">
+      <div className="flex flex-col items-center gap-4 select-none px-2 py-6 w-full" style={{ height: "100dvh", overflow: "hidden" }}>
         <h2 className="text-xl font-bold text-zinc-200">🏆 랭킹</h2>
         {/* Ranking list */}
         <div className="w-full max-w-[480px] max-h-[70vh] overflow-y-auto">
@@ -1241,7 +1241,7 @@ export default function Game() {
     const bestScore = homeTop3[0]?.score;
     return (
       <div className="relative flex flex-col items-center justify-end w-full select-none"
-        style={{ minHeight: "100dvh", backgroundImage: "url('/Title_image.webp')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.webp')", backgroundSize: "cover", backgroundPosition: "center" }}>
 
 
         {/* UI overlay — bottom section */}
@@ -1259,8 +1259,7 @@ export default function Game() {
 
           {/* PLAY button — image */}
           <button onClick={() => startWithDifficulty("normal")}
-            className="transition-all active:scale-95 hover:brightness-110"
-            style={{ animation: "pulse-glow-orange 2s ease-in-out infinite" }}>
+            className="transition-all active:scale-95 hover:brightness-110">
             <img src="/Play_image.png" alt="PLAY" className="w-[55vw] max-w-[260px]" />
           </button>
 
@@ -1318,7 +1317,7 @@ export default function Game() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto min-h-[100dvh] bg-black">
+    <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto bg-black" style={{ height: "100dvh", overflow: "hidden" }}>
       {/* Title image */}
       <img src="/Title_inside.webp" alt="Element Breaker" className="w-full max-w-[560px] h-auto" />
 
