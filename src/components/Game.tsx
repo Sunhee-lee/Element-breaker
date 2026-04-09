@@ -1401,20 +1401,10 @@ export default function Game() {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-20 flex items-center justify-center">
             <div className="flex flex-col gap-2 w-[70%] max-w-[260px] p-4 rounded-xl" style={{ background: "rgba(20,25,50,0.9)", border: "1px solid rgba(180,210,255,0.2)" }}>
               <p className="text-center text-sm font-bold mb-1" style={{ color: "#DCE7FF" }}>설정</p>
-              <button onClick={() => { setBGMVolume(bgmVol > 0 ? 0 : 0.3); setBgmVol(bgmVol > 0 ? 0 : 0.3); }}
-                className="flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
-                <span>배경음</span>
-                <span style={{ color: bgmVol > 0 ? "#63F5C8" : "#FF6B6B" }}>{bgmVol > 0 ? "ON" : "OFF"}</span>
-              </button>
-              <button onClick={() => setSfxOn(!sfxOn)} className="flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
-                <span>효과음</span>
-                <span style={{ color: sfxOn ? "#63F5C8" : "#FF6B6B" }}>{sfxOn ? "ON" : "OFF"}</span>
-              </button>
               <button onClick={() => {
                 setShowSettings(false);
                 pausedRef.current = false;
                 setPaused(false);
-                // Compensate timer for paused duration
                 if (pauseStartRef.current > 0 && timerStartRef.current > 0) {
                   timerStartRef.current += performance.now() - pauseStartRef.current;
                 }
@@ -1424,6 +1414,15 @@ export default function Game() {
               }}
                 className="flex items-center justify-center px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(91,192,235,0.3)", color: "#7DD3FC", border: "1px solid rgba(91,192,235,0.3)" }}>
                 이어하기
+              </button>
+              <button onClick={() => { setBGMVolume(bgmVol > 0 ? 0 : 0.3); setBgmVol(bgmVol > 0 ? 0 : 0.3); }}
+                className="flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
+                <span>배경음</span>
+                <span style={{ color: bgmVol > 0 ? "#63F5C8" : "#FF6B6B" }}>{bgmVol > 0 ? "ON" : "OFF"}</span>
+              </button>
+              <button onClick={() => setSfxOn(!sfxOn)} className="flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
+                <span>효과음</span>
+                <span style={{ color: sfxOn ? "#63F5C8" : "#FF6B6B" }}>{sfxOn ? "ON" : "OFF"}</span>
               </button>
               <button onClick={() => { setShowSettings(false); restartGame(); }}
                 className="flex items-center justify-center px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
