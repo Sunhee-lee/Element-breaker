@@ -1259,7 +1259,8 @@ export default function Game() {
 
           {/* PLAY button — image */}
           <button onClick={() => startWithDifficulty("normal")}
-            className="transition-all active:scale-95 hover:brightness-110">
+            className="transition-all active:scale-95 hover:brightness-110"
+            style={{ animation: "pulse-scale 2s ease-in-out infinite" }}>
             <img src="/Play_image.png" alt="PLAY" className="w-[55vw] max-w-[260px]" />
           </button>
 
