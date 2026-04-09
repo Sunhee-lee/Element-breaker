@@ -159,8 +159,9 @@ export default function Game() {
   const stallFramesRef = useRef(0);
   const sfxOnRef = useRef(true);
   const wasPausedRef = useRef(false); // was game paused when settings opened?
+  const pauseStartRef = useRef(0); // performance.now() when pause began (for timer compensation)
   const levelRef = useRef(1);
-  const timerStartRef = useRef(0); // performance.now() when launched // remaining shake frames
+  const timerStartRef = useRef(0); // performance.now() when launched
   const collectedRef = useRef<Set<number>>(new Set());
   const levelCollectedRef = useRef<Set<number>>(new Set()); // current level only
   const multiBallsRef = useRef<{ body: Matter.Body }[]>([]); // extra balls, no time limit
@@ -343,11 +344,19 @@ export default function Game() {
     const runner = runnerRef.current;
     if (!runner) return;
     if (next) {
+      pauseStartRef.current = performance.now();
       Matter.Runner.stop(runner);
       stopBGM();
-    } else if (engineRef.current) {
-      Matter.Runner.run(runner, engineRef.current);
-      startBGM(levelRef.current);
+    } else {
+      // Compensate timer for paused duration
+      if (pauseStartRef.current > 0 && timerStartRef.current > 0) {
+        timerStartRef.current += performance.now() - pauseStartRef.current;
+      }
+      pauseStartRef.current = 0;
+      if (engineRef.current) {
+        Matter.Runner.run(runner, engineRef.current);
+        startBGM(levelRef.current);
+      }
     }
   }, []);
 
@@ -1341,20 +1350,22 @@ export default function Game() {
                 const opening = !showSettings;
                 setShowSettings(opening);
                 if (opening) {
-                  // Track whether we were paused before opening settings
                   wasPausedRef.current = pausedRef.current;
-                  // If currently paused, hide pause overlay (keep runner stopped)
-                  if (pausedRef.current) setPaused(false);
-                  // Stop runner if game was running
-                  if (!pausedRef.current && runnerRef.current) Matter.Runner.stop(runnerRef.current);
+                  if (pausedRef.current) {
+                    setPaused(false); // hide pause overlay
+                  } else {
+                    // Game was running — pause it
+                    pauseStartRef.current = performance.now();
+                    if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
+                    stopBGM();
+                  }
                 }
-                // closing via button is handled by 닫기 button
               }}
                 className="w-6 h-6 flex items-center justify-center rounded active:brightness-150"
                 style={{ background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#DCE7FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
               </button>
-              {!gameOver && !stageClear && !paused ? (
+              {!gameOver && !stageClear && !paused && !showSettings ? (
                 <button onClick={togglePause}
                   className="w-6 h-6 flex items-center justify-center rounded active:brightness-150"
                   style={{ background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
@@ -1399,26 +1410,28 @@ export default function Game() {
                 <span>효과음</span>
                 <span style={{ color: sfxOn ? "#63F5C8" : "#FF6B6B" }}>{sfxOn ? "ON" : "OFF"}</span>
               </button>
+              <button onClick={() => {
+                setShowSettings(false);
+                pausedRef.current = false;
+                setPaused(false);
+                // Compensate timer for paused duration
+                if (pauseStartRef.current > 0 && timerStartRef.current > 0) {
+                  timerStartRef.current += performance.now() - pauseStartRef.current;
+                }
+                pauseStartRef.current = 0;
+                if (runnerRef.current && engineRef.current) Matter.Runner.run(runnerRef.current, engineRef.current);
+                startBGM(levelRef.current);
+              }}
+                className="flex items-center justify-center px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(91,192,235,0.3)", color: "#7DD3FC", border: "1px solid rgba(91,192,235,0.3)" }}>
+                이어하기
+              </button>
               <button onClick={() => { setShowSettings(false); restartGame(); }}
                 className="flex items-center justify-center px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
-                다시 시작
+                처음부터
               </button>
               <button onClick={() => { setShowSettings(false); stopBGM(); restartGame(); setDifficulty(null); }}
                 className="flex items-center justify-center px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
                 홈으로 가기
-              </button>
-              <button onClick={() => {
-                setShowSettings(false);
-                if (wasPausedRef.current) {
-                  // Restore paused state (runner stays stopped)
-                  pausedRef.current = true;
-                  setPaused(true);
-                } else if (runnerRef.current && engineRef.current) {
-                  Matter.Runner.run(runnerRef.current, engineRef.current);
-                }
-              }}
-                className="text-xs text-center mt-1" style={{ color: "rgba(220,231,255,0.4)" }}>
-                닫기
               </button>
             </div>
           </div>
