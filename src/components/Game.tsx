@@ -18,6 +18,7 @@ import {
   sndCombo, sndPowerup, sndLifeLost, sndMetal,
   startBGM, stopBGM, setBGMVolume, startMenuBGM, stopMenuBGM,
 } from "@/game/sound";
+import { App } from "@capacitor/app";
 
 // ── Constants ─────────────────────────────────────────────
 const GW = 560;
@@ -136,6 +137,7 @@ export default function Game() {
   const [rankingTab, setRankingTab] = useState("normal");
   const [level, setLevel] = useState(1);
   const [timeLeft, setTimeLeft] = useState(LEVEL_TIMES[0]);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const livesRef = useRef(LIVES);
   const scoreRef = useRef(0);
@@ -259,6 +261,7 @@ export default function Game() {
     floatingTextsRef.current = [];
     comboRef.current = 0;
     shakeRef.current = 0;
+    stallFramesRef.current = 0;
     collectedRef.current = new Set();
     levelCollectedRef.current = new Set();
     // Remove multiball extras
@@ -268,6 +271,25 @@ export default function Game() {
     multiBallsRef.current = [];
     levelRef.current = 1;
     timerStartRef.current = 0;
+    pauseStartRef.current = 0;
+    // Reset stateRef ball/paddle to base values
+    if (stateRef.current) {
+      stateRef.current.ball.speed = BASE_SPEED;
+      stateRef.current.ball.baseSpeed = BASE_SPEED;
+      stateRef.current.ball.radius = BALL_R;
+      stateRef.current.ball.baseRadius = BALL_R;
+      stateRef.current.ball.pierce = false;
+      stateRef.current.ball.metal = false;
+      stateRef.current.ball.trailDamage = false;
+      stateRef.current.ball.powerHit = false;
+      stateRef.current.paddle.width = pw;
+      stateRef.current.paddle.baseWidth = pw;
+      stateRef.current.paddle.speedMultiplier = 1;
+      stateRef.current.scoreMultiplier = 1;
+      stateRef.current.floorShieldEnd = 0;
+      stateRef.current.trajectoryEnd = 0;
+      stateRef.current.timedEffects = [];
+    }
     setLevel(1);
     setTimeLeft(LEVEL_TIMES[levelRef.current - 1]);
     setGameOver(false);
@@ -386,6 +408,14 @@ export default function Game() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [togglePause]);
+
+  // Android back button → show exit confirm
+  useEffect(() => {
+    const listener = App.addListener("backButton", () => {
+      setShowExitConfirm(true);
+    });
+    return () => { listener.then(h => h.remove()); };
+  }, []);
 
   // ══════════════════════════════════════════════════════
   //  Main effect – physics, collision, rendering
@@ -762,13 +792,25 @@ export default function Game() {
       for (let i = multiBallsRef.current.length - 1; i >= 0; i--) {
         const mb = multiBallsRef.current[i];
         const mbv = mb.body.velocity;
-        const mbsp = Math.sqrt(mbv.x * mbv.x + mbv.y * mbv.y) || sp;
+        const mbMag = Math.sqrt(mbv.x * mbv.x + mbv.y * mbv.y);
+        const mbsp = mbMag || sp;
+        // Speed enforcement for multi-balls
+        if (mbMag > 0.5 && Math.abs(mbMag - sp) > 0.1) {
+          const s = sp / mbMag;
+          Matter.Body.setVelocity(mb.body, { x: mbv.x * s, y: mbv.y * s });
+        }
         // Force multiball downward if moving too horizontally
-        if (Math.abs(mbv.y) < mbsp * 0.35) {
+        if (Math.abs(mbv.y) < mbsp * 0.45) {
           const ny = mbsp * 0.7;
           const nx = Math.sign(mbv.x || 1) * Math.sqrt(Math.max(0, mbsp * mbsp - ny * ny));
           Matter.Body.setVelocity(mb.body, { x: nx, y: ny });
-          Matter.Body.setPosition(mb.body, { x: mb.body.position.x, y: mb.body.position.y + 2 });
+          Matter.Body.setPosition(mb.body, { x: mb.body.position.x, y: mb.body.position.y + 3 });
+        }
+        // Stuck (near zero speed)
+        if (mbMag < 0.5) {
+          const nx = (Math.random() - 0.5) * sp * 0.5;
+          Matter.Body.setVelocity(mb.body, { x: nx, y: sp * 0.8 });
+          Matter.Body.setPosition(mb.body, { x: mb.body.position.x, y: mb.body.position.y + 3 });
         }
         // Remove if fell off screen
         if (mb.body.position.y > GH + BALL_R * 2) {
@@ -1232,6 +1274,23 @@ export default function Game() {
           className="px-5 py-2 text-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 rounded-lg">
           ← 돌아가기
         </button>
+        {showExitConfirm && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="flex flex-col gap-3 w-[70%] max-w-[260px] p-5 rounded-xl" style={{ background: "rgba(20,25,50,0.95)", border: "1px solid rgba(180,210,255,0.2)" }}>
+              <p className="text-center text-sm font-bold" style={{ color: "#DCE7FF" }}>게임을 종료하시겠습니까?</p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowExitConfirm(false)}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
+                  아니오
+                </button>
+                <button onClick={() => App.exitApp()}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(255,90,95,0.3)", color: "#FF5A5F", border: "1px solid rgba(255,90,95,0.3)" }}>
+                  예
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1313,6 +1372,23 @@ export default function Game() {
           <div className="mt-4" />
           <p className="text-[9px] text-white/30">버전 1.0.1</p>
         </div>
+        {showExitConfirm && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="flex flex-col gap-3 w-[70%] max-w-[260px] p-5 rounded-xl" style={{ background: "rgba(20,25,50,0.95)", border: "1px solid rgba(180,210,255,0.2)" }}>
+              <p className="text-center text-sm font-bold" style={{ color: "#DCE7FF" }}>게임을 종료하시겠습니까?</p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowExitConfirm(false)}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
+                  아니오
+                </button>
+                <button onClick={() => App.exitApp()}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(255,90,95,0.3)", color: "#FF5A5F", border: "1px solid rgba(255,90,95,0.3)" }}>
+                  예
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1598,6 +1674,25 @@ export default function Game() {
       <div ref={touchPadRef}
         className="w-full h-16 sm:h-20 touch-none cursor-none bg-zinc-900/50 rounded-b-lg"
         style={{ maxWidth: "560px" }} />
+
+      {/* Exit confirm dialog (Android back button) */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="flex flex-col gap-3 w-[70%] max-w-[260px] p-5 rounded-xl" style={{ background: "rgba(20,25,50,0.95)", border: "1px solid rgba(180,210,255,0.2)" }}>
+            <p className="text-center text-sm font-bold" style={{ color: "#DCE7FF" }}>게임을 종료하시겠습니까?</p>
+            <div className="flex gap-2">
+              <button onClick={() => setShowExitConfirm(false)}
+                className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
+                아니오
+              </button>
+              <button onClick={() => App.exitApp()}
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(255,90,95,0.3)", color: "#FF5A5F", border: "1px solid rgba(255,90,95,0.3)" }}>
+                예
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
