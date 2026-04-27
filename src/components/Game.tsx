@@ -18,6 +18,7 @@ import {
   sndCombo, sndPowerup, sndLifeLost, sndMetal,
   startBGM, stopBGM, setBGMVolume, startMenuBGM, stopMenuBGM,
 } from "@/game/sound";
+import { App } from "@capacitor/app";
 
 // ── Constants ─────────────────────────────────────────────
 const GW = 560;
@@ -136,6 +137,7 @@ export default function Game() {
   const [rankingTab, setRankingTab] = useState("normal");
   const [level, setLevel] = useState(1);
   const [timeLeft, setTimeLeft] = useState(LEVEL_TIMES[0]);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const livesRef = useRef(LIVES);
   const scoreRef = useRef(0);
@@ -158,8 +160,10 @@ export default function Game() {
   const shakeRef = useRef(0);
   const stallFramesRef = useRef(0);
   const sfxOnRef = useRef(true);
+  const wasPausedRef = useRef(false); // was game paused when settings opened?
+  const pauseStartRef = useRef(0); // performance.now() when pause began (for timer compensation)
   const levelRef = useRef(1);
-  const timerStartRef = useRef(0); // performance.now() when launched // remaining shake frames
+  const timerStartRef = useRef(0); // performance.now() when launched
   const collectedRef = useRef<Set<number>>(new Set());
   const levelCollectedRef = useRef<Set<number>>(new Set()); // current level only
   const multiBallsRef = useRef<{ body: Matter.Body }[]>([]); // extra balls, no time limit
@@ -257,6 +261,7 @@ export default function Game() {
     floatingTextsRef.current = [];
     comboRef.current = 0;
     shakeRef.current = 0;
+    stallFramesRef.current = 0;
     collectedRef.current = new Set();
     levelCollectedRef.current = new Set();
     // Remove multiball extras
@@ -266,6 +271,25 @@ export default function Game() {
     multiBallsRef.current = [];
     levelRef.current = 1;
     timerStartRef.current = 0;
+    pauseStartRef.current = 0;
+    // Reset stateRef ball/paddle to base values
+    if (stateRef.current) {
+      stateRef.current.ball.speed = BASE_SPEED;
+      stateRef.current.ball.baseSpeed = BASE_SPEED;
+      stateRef.current.ball.radius = BALL_R;
+      stateRef.current.ball.baseRadius = BALL_R;
+      stateRef.current.ball.pierce = false;
+      stateRef.current.ball.metal = false;
+      stateRef.current.ball.trailDamage = false;
+      stateRef.current.ball.powerHit = false;
+      stateRef.current.paddle.width = pw;
+      stateRef.current.paddle.baseWidth = pw;
+      stateRef.current.paddle.speedMultiplier = 1;
+      stateRef.current.scoreMultiplier = 1;
+      stateRef.current.floorShieldEnd = 0;
+      stateRef.current.trajectoryEnd = 0;
+      stateRef.current.timedEffects = [];
+    }
     setLevel(1);
     setTimeLeft(LEVEL_TIMES[levelRef.current - 1]);
     setGameOver(false);
@@ -342,11 +366,19 @@ export default function Game() {
     const runner = runnerRef.current;
     if (!runner) return;
     if (next) {
+      pauseStartRef.current = performance.now();
       Matter.Runner.stop(runner);
       stopBGM();
-    } else if (engineRef.current) {
-      Matter.Runner.run(runner, engineRef.current);
-      startBGM(levelRef.current);
+    } else {
+      // Compensate timer for paused duration
+      if (pauseStartRef.current > 0 && timerStartRef.current > 0) {
+        timerStartRef.current += performance.now() - pauseStartRef.current;
+      }
+      pauseStartRef.current = 0;
+      if (engineRef.current) {
+        Matter.Runner.run(runner, engineRef.current);
+        startBGM(levelRef.current);
+      }
     }
   }, []);
 
@@ -376,6 +408,14 @@ export default function Game() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [togglePause]);
+
+  // Android back button → show exit confirm
+  useEffect(() => {
+    const listener = App.addListener("backButton", () => {
+      setShowExitConfirm(true);
+    });
+    return () => { listener.then(h => h.remove()); };
+  }, []);
 
   // ══════════════════════════════════════════════════════
   //  Main effect – physics, collision, rendering
@@ -752,13 +792,25 @@ export default function Game() {
       for (let i = multiBallsRef.current.length - 1; i >= 0; i--) {
         const mb = multiBallsRef.current[i];
         const mbv = mb.body.velocity;
-        const mbsp = Math.sqrt(mbv.x * mbv.x + mbv.y * mbv.y) || sp;
+        const mbMag = Math.sqrt(mbv.x * mbv.x + mbv.y * mbv.y);
+        const mbsp = mbMag || sp;
+        // Speed enforcement for multi-balls
+        if (mbMag > 0.5 && Math.abs(mbMag - sp) > 0.1) {
+          const s = sp / mbMag;
+          Matter.Body.setVelocity(mb.body, { x: mbv.x * s, y: mbv.y * s });
+        }
         // Force multiball downward if moving too horizontally
-        if (Math.abs(mbv.y) < mbsp * 0.35) {
+        if (Math.abs(mbv.y) < mbsp * 0.45) {
           const ny = mbsp * 0.7;
           const nx = Math.sign(mbv.x || 1) * Math.sqrt(Math.max(0, mbsp * mbsp - ny * ny));
           Matter.Body.setVelocity(mb.body, { x: nx, y: ny });
-          Matter.Body.setPosition(mb.body, { x: mb.body.position.x, y: mb.body.position.y + 2 });
+          Matter.Body.setPosition(mb.body, { x: mb.body.position.x, y: mb.body.position.y + 3 });
+        }
+        // Stuck (near zero speed)
+        if (mbMag < 0.5) {
+          const nx = (Math.random() - 0.5) * sp * 0.5;
+          Matter.Body.setVelocity(mb.body, { x: nx, y: sp * 0.8 });
+          Matter.Body.setPosition(mb.body, { x: mb.body.position.x, y: mb.body.position.y + 3 });
         }
         // Remove if fell off screen
         if (mb.body.position.y > GH + BALL_R * 2) {
@@ -1193,28 +1245,26 @@ export default function Game() {
   // Full ranking screen
   if (showFullRanking) {
     return (
-      <div className="flex flex-col items-center min-h-[100dvh] gap-4 select-none px-2 py-6 w-full">
+      <div className="flex flex-col items-center gap-4 select-none px-2 py-6 w-full" style={{ height: "100dvh", overflow: "hidden" }}>
         <h2 className="text-xl font-bold text-zinc-200">🏆 랭킹</h2>
         {/* Ranking list */}
         <div className="w-full max-w-[480px] max-h-[70vh] overflow-y-auto">
           {/* Header */}
-          <div className="w-full flex items-center justify-between px-4 py-1.5 text-[11px] text-zinc-500 border-b border-zinc-700">
-            <div className="flex items-center gap-3"><span className="w-6">순위</span><span>이름</span></div>
-            <div className="flex items-center gap-6"><span>레벨</span><span className="w-16 text-right">점수</span></div>
+          <div className="w-full flex items-center px-4 py-1.5 text-[11px] text-zinc-500 border-b border-zinc-700">
+            <span className="w-8">순위</span>
+            <span className="flex-1">이름</span>
+            <span className="w-10 text-center">레벨</span>
+            <span className="w-20 text-right">점수</span>
           </div>
           <div className="bg-zinc-900 rounded-lg border border-zinc-700 overflow-hidden">
             {Array.from({ length: Math.max(30, rankings.length) }, (_, i) => {
               const r = rankings[i];
               return (
-                <div key={i} className={`flex items-center justify-between px-4 py-2 text-sm ${i === 0 ? "bg-yellow-900/30" : i === 1 ? "bg-zinc-800/50" : i === 2 ? "bg-orange-900/20" : ""} ${i > 0 ? "border-t border-zinc-800" : ""}`}>
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 text-center">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span className="text-zinc-500 font-bold">{i + 1}</span>}</span>
-                    <span className="text-zinc-200">{r ? r.player_name : "---"}</span>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <span className="text-zinc-500 text-xs">{r ? `Lv.${r.level ?? 1}` : ""}</span>
-                    <span className="font-mono font-bold text-indigo-400 w-20 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{r ? r.score.toLocaleString() : "---"}</span>
-                  </div>
+                <div key={i} className={`flex items-center px-4 py-2 text-sm ${i === 0 ? "bg-yellow-900/30" : i === 1 ? "bg-zinc-800/50" : i === 2 ? "bg-orange-900/20" : ""} ${i > 0 ? "border-t border-zinc-800" : ""}`}>
+                  <span className="w-8 text-center">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span className="text-zinc-500 font-bold">{i + 1}</span>}</span>
+                  <span className="flex-1 text-zinc-200">{r ? r.player_name : "---"}</span>
+                  <span className="w-10 text-center text-zinc-500 text-xs">{r ? `Lv.${r.level ?? 1}` : ""}</span>
+                  <span className="w-20 text-right font-mono font-bold text-indigo-400" style={{ fontVariantNumeric: "tabular-nums" }}>{r ? r.score.toLocaleString() : "---"}</span>
                 </div>
               );
             })}
@@ -1224,6 +1274,23 @@ export default function Game() {
           className="px-5 py-2 text-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 rounded-lg">
           ← 돌아가기
         </button>
+        {showExitConfirm && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="flex flex-col gap-3 w-[70%] max-w-[260px] p-5 rounded-xl" style={{ background: "rgba(20,25,50,0.95)", border: "1px solid rgba(180,210,255,0.2)" }}>
+              <p className="text-center text-sm font-bold" style={{ color: "#DCE7FF" }}>게임을 종료하시겠습니까?</p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowExitConfirm(false)}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
+                  아니오
+                </button>
+                <button onClick={() => App.exitApp()}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(255,90,95,0.3)", color: "#FF5A5F", border: "1px solid rgba(255,90,95,0.3)" }}>
+                  예
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1233,7 +1300,7 @@ export default function Game() {
     const bestScore = homeTop3[0]?.score;
     return (
       <div className="relative flex flex-col items-center justify-end w-full select-none"
-        style={{ minHeight: "100dvh", backgroundImage: "url('/Title_image.webp')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.webp')", backgroundSize: "cover", backgroundPosition: "center" }}>
 
 
         {/* UI overlay — bottom section */}
@@ -1252,7 +1319,7 @@ export default function Game() {
           {/* PLAY button — image */}
           <button onClick={() => startWithDifficulty("normal")}
             className="transition-all active:scale-95 hover:brightness-110"
-            style={{ animation: "pulse-glow-orange 2s ease-in-out infinite" }}>
+            style={{ animation: "pulse-scale 2s ease-in-out infinite" }}>
             <img src="/Play_image.png" alt="PLAY" className="w-[55vw] max-w-[260px]" />
           </button>
 
@@ -1276,7 +1343,11 @@ export default function Game() {
           {showSettings && (
             <div className="flex flex-col gap-2 w-[70%] max-w-[260px] p-4 rounded-xl" style={{ background: "rgba(20,25,50,0.9)", border: "1px solid rgba(180,210,255,0.2)" }}>
               <p className="text-center text-sm font-bold mb-1" style={{ color: "#DCE7FF" }}>설정</p>
-              <button onClick={() => { setBGMVolume(bgmVol > 0 ? 0 : 0.3); setBgmVol(bgmVol > 0 ? 0 : 0.3); }}
+              <button onClick={() => {
+                const newVol = bgmVol > 0 ? 0 : 0.3;
+                setBgmVol(newVol); setBGMVolume(newVol);
+                if (newVol === 0) stopMenuBGM(); else startMenuBGM();
+              }}
                 className="flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
                 <span>배경음</span>
                 <span style={{ color: bgmVol > 0 ? "#63F5C8" : "#FF6B6B" }}>{bgmVol > 0 ? "ON" : "OFF"}</span>
@@ -1294,19 +1365,36 @@ export default function Game() {
 
           {/* Best score + level info */}
           <p className="text-xs text-white/70 font-medium" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
-            현재 최고 점수: <span className="font-bold text-white">{bestScore != null ? bestScore.toLocaleString() : "---"}</span> | 레벨: <span className="font-bold text-white">1</span>
+            현재 최고 점수: <span className="font-bold text-white">{bestScore != null ? bestScore.toLocaleString() : "---"}</span> | 레벨: <span className="font-bold text-white">{homeTop3[0]?.level ?? "-"}</span>
           </p>
 
           {/* Version */}
           <div className="mt-4" />
           <p className="text-[9px] text-white/30">버전 1.0.1</p>
         </div>
+        {showExitConfirm && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="flex flex-col gap-3 w-[70%] max-w-[260px] p-5 rounded-xl" style={{ background: "rgba(20,25,50,0.95)", border: "1px solid rgba(180,210,255,0.2)" }}>
+              <p className="text-center text-sm font-bold" style={{ color: "#DCE7FF" }}>게임을 종료하시겠습니까?</p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowExitConfirm(false)}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
+                  아니오
+                </button>
+                <button onClick={() => App.exitApp()}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(255,90,95,0.3)", color: "#FF5A5F", border: "1px solid rgba(255,90,95,0.3)" }}>
+                  예
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto min-h-[100dvh] bg-black">
+    <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto bg-black" style={{ height: "100dvh", overflow: "hidden" }}>
       {/* Title image */}
       <img src="/Title_inside.webp" alt="Element Breaker" className="w-full max-w-[560px] h-auto" />
 
@@ -1337,14 +1425,23 @@ export default function Game() {
               <button onClick={() => {
                 const opening = !showSettings;
                 setShowSettings(opening);
-                if (opening && runnerRef.current) Matter.Runner.stop(runnerRef.current);
-                if (!opening && runnerRef.current && engineRef.current) Matter.Runner.run(runnerRef.current, engineRef.current);
+                if (opening) {
+                  wasPausedRef.current = pausedRef.current;
+                  if (pausedRef.current) {
+                    setPaused(false); // hide pause overlay
+                  } else {
+                    // Game was running — pause it
+                    pauseStartRef.current = performance.now();
+                    if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
+                    stopBGM();
+                  }
+                }
               }}
                 className="w-6 h-6 flex items-center justify-center rounded active:brightness-150"
                 style={{ background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#DCE7FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
               </button>
-              {!gameOver && !stageClear && !paused ? (
+              {!gameOver && !stageClear && !paused && !showSettings ? (
                 <button onClick={togglePause}
                   className="w-6 h-6 flex items-center justify-center rounded active:brightness-150"
                   style={{ background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
@@ -1380,6 +1477,20 @@ export default function Game() {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-20 flex items-center justify-center">
             <div className="flex flex-col gap-2 w-[70%] max-w-[260px] p-4 rounded-xl" style={{ background: "rgba(20,25,50,0.9)", border: "1px solid rgba(180,210,255,0.2)" }}>
               <p className="text-center text-sm font-bold mb-1" style={{ color: "#DCE7FF" }}>설정</p>
+              <button onClick={() => {
+                setShowSettings(false);
+                pausedRef.current = false;
+                setPaused(false);
+                if (pauseStartRef.current > 0 && timerStartRef.current > 0) {
+                  timerStartRef.current += performance.now() - pauseStartRef.current;
+                }
+                pauseStartRef.current = 0;
+                if (runnerRef.current && engineRef.current) Matter.Runner.run(runnerRef.current, engineRef.current);
+                startBGM(levelRef.current);
+              }}
+                className="flex items-center justify-center px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(91,192,235,0.3)", color: "#7DD3FC", border: "1px solid rgba(91,192,235,0.3)" }}>
+                이어하기
+              </button>
               <button onClick={() => { setBGMVolume(bgmVol > 0 ? 0 : 0.3); setBgmVol(bgmVol > 0 ? 0 : 0.3); }}
                 className="flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
                 <span>배경음</span>
@@ -1391,15 +1502,11 @@ export default function Game() {
               </button>
               <button onClick={() => { setShowSettings(false); restartGame(); }}
                 className="flex items-center justify-center px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
-                다시 시작
+                처음부터
               </button>
               <button onClick={() => { setShowSettings(false); stopBGM(); restartGame(); setDifficulty(null); }}
                 className="flex items-center justify-center px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
                 홈으로 가기
-              </button>
-              <button onClick={() => { setShowSettings(false); if (runnerRef.current && engineRef.current) Matter.Runner.run(runnerRef.current, engineRef.current); }}
-                className="text-xs text-center mt-1" style={{ color: "rgba(220,231,255,0.4)" }}>
-                닫기
               </button>
             </div>
           </div>
@@ -1567,6 +1674,25 @@ export default function Game() {
       <div ref={touchPadRef}
         className="w-full h-16 sm:h-20 touch-none cursor-none bg-zinc-900/50 rounded-b-lg"
         style={{ maxWidth: "560px" }} />
+
+      {/* Exit confirm dialog (Android back button) */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="flex flex-col gap-3 w-[70%] max-w-[260px] p-5 rounded-xl" style={{ background: "rgba(20,25,50,0.95)", border: "1px solid rgba(180,210,255,0.2)" }}>
+            <p className="text-center text-sm font-bold" style={{ color: "#DCE7FF" }}>게임을 종료하시겠습니까?</p>
+            <div className="flex gap-2">
+              <button onClick={() => setShowExitConfirm(false)}
+                className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
+                아니오
+              </button>
+              <button onClick={() => App.exitApp()}
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(255,90,95,0.3)", color: "#FF5A5F", border: "1px solid rgba(255,90,95,0.3)" }}>
+                예
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

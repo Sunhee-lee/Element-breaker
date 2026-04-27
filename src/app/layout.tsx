@@ -26,14 +26,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased dark">
+    <html lang="en" className="antialiased dark">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet" />
         <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet" />
       </head>
-      <body className="min-h-full flex flex-col bg-[#0a0a0a] text-[#ededed] overscroll-none" style={{ fontFamily: "'Pretendard', sans-serif" }}>
+      <body className="flex flex-col bg-[#0a0a0a] text-[#ededed] overscroll-none overflow-hidden" style={{ fontFamily: "'Pretendard', sans-serif" }}>
         {children}
       </body>
     </html>
