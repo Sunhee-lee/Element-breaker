@@ -1018,7 +1018,7 @@ export default function Game() {
 
         // Atomic number (top-left, tiny)
         ctx.fillStyle = vs.textColor;
-        ctx.globalAlpha = 0.45;
+        ctx.globalAlpha = 0.28;
         ctx.font = "bold 6px Pretendard, sans-serif";
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
@@ -1031,7 +1031,7 @@ export default function Game() {
           ctx.shadowBlur = 2;
           ctx.shadowColor = "rgba(0,0,0,0.5)";
         }
-        ctx.font = "bold 10px Pretendard, sans-serif";
+        ctx.font = "bold 12px Pretendard, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(el.symbol, blk.x, blk.y + 2);
@@ -1356,9 +1356,9 @@ export default function Game() {
         style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.png?v=2')", backgroundSize: "100% auto", backgroundPosition: "top center", backgroundRepeat: "no-repeat" }}>
 
 
-        {/* UI overlay — centered at 70% from top (center + 20%) */}
+        {/* UI overlay — centered at 85% from top */}
         <div className="absolute z-10 flex flex-col items-center gap-3 px-4 w-full max-w-[400px]"
-          style={{ top: "70%", left: "50%", transform: "translate(-50%, -50%)" }}>
+          style={{ top: "85%", left: "50%", transform: "translate(-50%, -50%)" }}>
 
           {/* GAME START label */}
           <div className="flex items-center gap-2">
@@ -1446,21 +1446,40 @@ export default function Game() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto bg-black" style={{ height: "100dvh", overflow: "hidden" }}>
-      {/* Title image */}
-      <img src="/Title_inside.png?v=2" alt="Element Breaker" className="w-full max-w-[560px] h-auto" />
+    <div className="flex flex-col select-none w-full max-w-[560px] mx-auto bg-black"
+      style={{ height: "100dvh", overflow: "hidden", padding: "4px 8px 0" }}>
 
-      {/* HUD */}
-      {/* ── HUD ── */}
-      <div className="flex items-start justify-between w-full px-2 py-1">
-        {/* Left: atom lives + pause button in one row */}
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1.5">
-            {Array.from({ length: LIVES }).map((_, i) => {
-              const active = i < lives;
-              const warning = active && lives === 1;
-              return <AtomLifeIcon key={i} active={active} warning={warning} />;
-            })}
+      {/* Logo — compact banner */}
+      <img src="/Title_inside.png?v=2" alt="Element Breaker"
+        style={{ height: "58px", width: "100%", objectFit: "contain", flexShrink: 0 }} />
+
+      {/* ── HUD — single row ── */}
+      <div className="flex items-center justify-between w-full"
+        style={{ height: "44px", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
+
+        {/* Left: atom lives */}
+        <div className="flex gap-1.5 items-center" style={{ minWidth: 0 }}>
+          {Array.from({ length: LIVES }).map((_, i) => {
+            const active = i < lives;
+            const warning = active && lives === 1;
+            return <AtomLifeIcon key={i} active={active} warning={warning} />;
+          })}
+        </div>
+
+        {/* Center: Level */}
+        <span style={{ fontSize: "15px", fontWeight: 700, color: "#DCE7FF", flexShrink: 0, padding: "0 8px" }}>
+          Lv.{level}
+        </span>
+
+        {/* Right: time + score + pause */}
+        <div className="flex items-center gap-2" style={{ minWidth: 0 }}>
+          <div className="flex flex-col items-end" style={{ minWidth: 0 }}>
+            <span style={{ fontSize: "13px", fontWeight: 600, lineHeight: 1.2, color: timeLeft <= 30 ? "#FF5A5F" : "#A8C4FF" }}>
+              {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
+            </span>
+            <span style={{ fontSize: "17px", fontWeight: 800, lineHeight: 1.1, color: "#F4F7FF", textShadow: "0 0 8px rgba(120,160,255,0.28)" }}>
+              {score.toLocaleString()}
+            </span>
           </div>
           {launched && (
             <button onClick={() => {
@@ -1478,28 +1497,15 @@ export default function Game() {
               }
             }}
               className="w-[29px] h-[29px] flex items-center justify-center rounded active:brightness-150"
-              style={{ background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
+              style={{ flexShrink: 0, background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
               <svg width="10" height="10" viewBox="0 0 14 14" fill="#DCE7FF"><rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/></svg>
             </button>
           )}
         </div>
-
-        {/* Right: Lv+Time (line1) + Score (line2) */}
-        <div className="flex flex-col items-end">
-          <div className="flex items-baseline gap-3" style={{ fontVariantNumeric: "tabular-nums" }}>
-            <span style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.15, color: "#DCE7FF" }}>Lv.{level}</span>
-            <span style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.15, color: timeLeft <= 30 ? "#FF5A5F" : "#DCE7FF" }}>
-              {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
-            </span>
-          </div>
-          <span style={{ fontSize: "22px", fontWeight: 800, lineHeight: 1, color: "#F4F7FF", textShadow: "0 0 8px rgba(120,160,255,0.28)", fontVariantNumeric: "tabular-nums", minWidth: "80px", textAlign: "right" as const, display: "inline-block", marginTop: "4px" }}>
-            {score.toLocaleString()}
-          </span>
-        </div>
       </div>
 
       {/* Canvas */}
-      <div className="relative rounded-lg overflow-hidden shadow-[0_0_40px_rgba(91,192,235,0.15)] w-full">
+      <div className="relative rounded-lg overflow-hidden shadow-[0_0_40px_rgba(91,192,235,0.15)] w-full" style={{ marginTop: "6px" }}>
         <canvas ref={canvasRef} width={GW} height={GH}
           className="block w-full h-auto cursor-none touch-none"
           style={{ aspectRatio: `${GW}/${GH}` }} />
