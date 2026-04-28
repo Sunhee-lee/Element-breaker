@@ -1352,12 +1352,13 @@ export default function Game() {
   if (!difficulty) {
     const bestScore = homeTop3[0]?.score;
     return (
-      <div className="relative flex flex-col items-center justify-end w-full select-none"
+      <div className="relative w-full select-none"
         style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.png?v=2')", backgroundSize: "100% auto", backgroundPosition: "top center", backgroundRepeat: "no-repeat" }}>
 
 
-        {/* UI overlay — bottom section */}
-        <div className="relative z-10 flex flex-col items-center gap-3 px-4 w-full max-w-[400px]" style={{ paddingBottom: "max(14vh, env(safe-area-inset-bottom))" }}>
+        {/* UI overlay — centered at 70% from top (center + 20%) */}
+        <div className="absolute z-10 flex flex-col items-center gap-3 px-4 w-full max-w-[400px]"
+          style={{ top: "70%", left: "50%", transform: "translate(-50%, -50%)" }}>
 
           {/* GAME START label */}
           <div className="flex items-center gap-2">
@@ -1421,8 +1422,6 @@ export default function Game() {
             현재 최고 점수: <span className="font-bold text-white">{bestScore != null ? bestScore.toLocaleString() : "---"}</span> | 레벨: <span className="font-bold text-white">{homeTop3[0]?.level ?? "-"}</span>
           </p>
 
-          {/* Version */}
-          <div className="mt-4" />
           <p className="text-[9px] text-white/30">버전 1.0.1</p>
         </div>
         {showExitConfirm && (
