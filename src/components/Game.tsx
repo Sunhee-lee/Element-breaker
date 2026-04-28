@@ -1353,7 +1353,7 @@ export default function Game() {
     const bestScore = homeTop3[0]?.score;
     return (
       <div className="relative flex flex-col items-center justify-end w-full select-none"
-        style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.png?v=2')", backgroundSize: "cover", backgroundPosition: "top" }}>
+        style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.png?v=2')", backgroundSize: "100% auto", backgroundPosition: "top center", backgroundRepeat: "no-repeat" }}>
 
 
         {/* UI overlay — bottom section */}
