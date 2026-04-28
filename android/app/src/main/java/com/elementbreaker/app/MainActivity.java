@@ -30,7 +30,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         // Re-apply immersive mode when returning to app
         WindowInsetsControllerCompat controller =
