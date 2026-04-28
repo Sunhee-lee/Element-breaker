@@ -1057,7 +1057,7 @@ export default function Game() {
           ctx.shadowBlur = 2;
           ctx.shadowColor = "rgba(0,0,0,0.5)";
         }
-        ctx.font = "700 12px Pretendard, sans-serif";
+        ctx.font = "400 12px Pretendard, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(el.symbol, blk.x, blk.y + 2);
@@ -1485,33 +1485,35 @@ export default function Game() {
       <img src="/Title_inside.png?v=3" alt="Element Breaker"
         style={{ height: "58px", width: "100%", objectFit: "contain", flexShrink: 0 }} />
 
-      {/* ── HUD — single row (3-column grid) ── */}
-      <div className="w-full" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", height: "44px", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
+      {/* ── HUD — Left: Lv+lives  |  Right: score+time+pause ── */}
+      <div className="w-full flex items-center justify-between"
+        style={{ height: "44px", flexShrink: 0, fontVariantNumeric: "tabular-nums", fontFeatureSettings: '"tnum"' }}>
 
-        {/* Left: atom lives */}
-        <div className="flex gap-1.5 items-center">
-          {Array.from({ length: LIVES }).map((_, i) => {
-            const active = i < lives;
-            const warning = active && lives === 1;
-            return <AtomLifeIcon key={i} active={active} warning={warning} />;
-          })}
+        {/* Left group: Lv + atom lives */}
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: "14px", fontWeight: 700, color: "#DCE7FF", whiteSpace: "nowrap" as const }}>
+            Lv.{level}
+          </span>
+          <div className="flex gap-1.5 items-center">
+            {Array.from({ length: LIVES }).map((_, i) => {
+              const active = i < lives;
+              const warning = active && lives === 1;
+              return <AtomLifeIcon key={i} active={active} warning={warning} />;
+            })}
+          </div>
         </div>
 
-        {/* Center: Level — truly centered */}
-        <span style={{ fontSize: "15px", fontWeight: 700, color: "#DCE7FF", textAlign: "center" as const, whiteSpace: "nowrap" as const }}>
-          Lv.{level}
-        </span>
-
-        {/* Right: time + score + pause */}
-        <div className="flex items-center gap-2" style={{ justifySelf: "end" as const }}>
-          <div className="flex flex-col items-end" style={{ minWidth: 0 }}>
-            <span style={{ fontSize: "13px", fontWeight: 700, lineHeight: 1.2, color: timeLeft <= 30 ? "#FF5A5F" : "#A8C4FF" }}>
-              {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
-            </span>
-            <span style={{ fontSize: "17px", fontWeight: 700, lineHeight: 1.1, color: "#F4F7FF", textShadow: "0 0 8px rgba(120,160,255,0.28)" }}>
-              {score.toLocaleString()}
-            </span>
-          </div>
+        {/* Right group: score + time + pause */}
+        <div className="flex items-center gap-2">
+          {/* Score — min-width so layout doesn't shift on digit changes */}
+          <span style={{ fontSize: "16px", fontWeight: 700, color: "#F4F7FF", textShadow: "0 0 8px rgba(120,160,255,0.28)", minWidth: "4ch", textAlign: "right" as const, display: "inline-block" }}>
+            {score.toLocaleString()}
+          </span>
+          {/* Time — fixed 5ch so 07:00 never reflows */}
+          <span style={{ fontSize: "14px", fontWeight: 700, color: timeLeft <= 30 ? "#FF5A5F" : "#A8C4FF", width: "5ch", textAlign: "right" as const, display: "inline-block", flexShrink: 0 }}>
+            {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}
+          </span>
+          {/* Pause — always right-most, hidden on game over / stage clear */}
           {!gameOver && !stageClear && (
             <button onClick={() => {
               const opening = !showSettings;
