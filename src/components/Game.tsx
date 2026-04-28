@@ -1506,7 +1506,7 @@ export default function Game() {
         {/* Right group: score + time + pause */}
         <div className="flex items-center gap-2">
           {/* Score — min-width so layout doesn't shift on digit changes */}
-          <span style={{ fontSize: "16px", fontWeight: 700, color: "#F4F7FF", textShadow: "0 0 8px rgba(120,160,255,0.28)", minWidth: "4ch", textAlign: "right" as const, display: "inline-block" }}>
+          <span style={{ fontSize: "16px", fontWeight: 700, color: "#F4F7FF", textShadow: "0 0 8px rgba(120,160,255,0.28)", minWidth: "4ch", textAlign: "right" as const, display: "inline-block", marginRight: "-4px" }}>
             {score.toLocaleString()}
           </span>
           {/* Time — fixed 5ch so 07:00 never reflows */}
