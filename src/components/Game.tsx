@@ -1300,7 +1300,7 @@ export default function Game() {
     const bestScore = homeTop3[0]?.score;
     return (
       <div className="relative flex flex-col items-center justify-end w-full select-none"
-        style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.webp')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.png?v=2')", backgroundSize: "cover", backgroundPosition: "center" }}>
 
 
         {/* UI overlay — bottom section */}
@@ -1396,7 +1396,7 @@ export default function Game() {
   return (
     <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto bg-black" style={{ height: "100dvh", overflow: "hidden" }}>
       {/* Title image */}
-      <img src="/Title_inside.webp" alt="Element Breaker" className="w-full max-w-[560px] h-auto" />
+      <img src="/Title_inside.png?v=2" alt="Element Breaker" className="w-full max-w-[560px] h-auto" />
 
       {/* HUD */}
       {/* ── HUD ── */}
