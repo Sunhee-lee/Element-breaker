@@ -1019,7 +1019,7 @@ export default function Game() {
         // Atomic number (top-left, tiny)
         ctx.fillStyle = vs.textColor;
         ctx.globalAlpha = 0.28;
-        ctx.font = "bold 6px Pretendard, sans-serif";
+        ctx.font = "400 6px Pretendard, sans-serif";
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
         ctx.fillText(String(el.atomicNumber), bx + 1, by + 1);
@@ -1031,7 +1031,7 @@ export default function Game() {
           ctx.shadowBlur = 2;
           ctx.shadowColor = "rgba(0,0,0,0.5)";
         }
-        ctx.font = "bold 12px Pretendard, sans-serif";
+        ctx.font = "700 12px Pretendard, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(el.symbol, blk.x, blk.y + 2);
@@ -1139,7 +1139,7 @@ export default function Game() {
         // ☢ radiation symbol when pierce is active
         if (isPiercing) {
           ctx.fillStyle = "#052e16";
-          ctx.font = `bold ${Math.round(br * 1.4)}px Pretendard, sans-serif`;
+          ctx.font = `700 ${Math.round(br * 1.4)}px Pretendard, sans-serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText("☢", b.position.x, b.position.y);
@@ -1189,7 +1189,7 @@ export default function Game() {
           ctx.translate(ft.x, ft.y);
           ctx.scale(s, s);
           ctx.fillStyle = ft.color;
-          ctx.font = "800 22px Pretendard, sans-serif";
+          ctx.font = "700 22px Pretendard, sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.shadowBlur = 20;
@@ -1199,7 +1199,7 @@ export default function Game() {
           ctx.restore();
         } else {
           ctx.fillStyle = ft.color;
-          ctx.font = "600 18px Pretendard, sans-serif";
+          ctx.font = "700 18px Pretendard, sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.shadowBlur = 8;
@@ -1474,10 +1474,10 @@ export default function Game() {
         {/* Right: time + score + pause */}
         <div className="flex items-center gap-2" style={{ minWidth: 0 }}>
           <div className="flex flex-col items-end" style={{ minWidth: 0 }}>
-            <span style={{ fontSize: "13px", fontWeight: 600, lineHeight: 1.2, color: timeLeft <= 30 ? "#FF5A5F" : "#A8C4FF" }}>
+            <span style={{ fontSize: "13px", fontWeight: 700, lineHeight: 1.2, color: timeLeft <= 30 ? "#FF5A5F" : "#A8C4FF" }}>
               {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
             </span>
-            <span style={{ fontSize: "17px", fontWeight: 800, lineHeight: 1.1, color: "#F4F7FF", textShadow: "0 0 8px rgba(120,160,255,0.28)" }}>
+            <span style={{ fontSize: "17px", fontWeight: 700, lineHeight: 1.1, color: "#F4F7FF", textShadow: "0 0 8px rgba(120,160,255,0.28)" }}>
               {score.toLocaleString()}
             </span>
           </div>
