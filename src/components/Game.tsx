@@ -1357,7 +1357,7 @@ export default function Game() {
 
 
         {/* UI overlay — bottom section */}
-        <div className="relative z-10 flex flex-col items-center gap-3 px-4 w-full max-w-[400px]" style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}>
+        <div className="relative z-10 flex flex-col items-center gap-3 px-4 w-full max-w-[400px]" style={{ paddingBottom: "max(14vh, env(safe-area-inset-bottom))" }}>
 
           {/* GAME START label */}
           <div className="flex items-center gap-2">
