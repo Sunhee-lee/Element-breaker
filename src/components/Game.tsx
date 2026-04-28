@@ -1382,7 +1382,7 @@ export default function Game() {
     const bestScore = homeTop3[0]?.score;
     return (
       <div className="relative w-full select-none"
-        style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.png?v=2')", backgroundSize: "100% auto", backgroundPosition: "top center", backgroundRepeat: "no-repeat" }}>
+        style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.png?v=3')", backgroundSize: "100% auto", backgroundPosition: "top center", backgroundRepeat: "no-repeat" }}>
 
 
         {/* UI overlay — centered at 75% from top */}
