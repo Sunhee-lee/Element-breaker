@@ -19,6 +19,7 @@ import {
   startBGM, stopBGM, setBGMVolume, startMenuBGM, stopMenuBGM,
 } from "@/game/sound";
 import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 
 // ── Constants ─────────────────────────────────────────────
 const GW = 560;
@@ -57,6 +58,36 @@ interface FloatingText {
   life: number;
   maxLife: number;
   color: string;
+  isCombo?: boolean;
+}
+
+function AtomLifeIcon({ active, warning }: { active: boolean; warning: boolean }) {
+  if (!active) {
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="2.8" fill="#1E2530" />
+        <ellipse cx="12" cy="12" rx="10" ry="3.8" fill="none" stroke="#2B3440" strokeWidth="1.2" opacity="0.55" />
+        <ellipse cx="12" cy="12" rx="10" ry="3.8" fill="none" stroke="#2B3440" strokeWidth="1.2" opacity="0.55" transform="rotate(60 12 12)" />
+        <ellipse cx="12" cy="12" rx="10" ry="3.8" fill="none" stroke="#2B3440" strokeWidth="1.2" opacity="0.55" transform="rotate(-60 12 12)" />
+      </svg>
+    );
+  }
+  const coreColor = warning ? "#FFB347" : "#BFF7FF";
+  const orbitColor = warning ? "#FF8C42" : "#55DFFF";
+  const coreGlow = warning
+    ? "drop-shadow(0 0 4px rgba(255,106,61,0.85))"
+    : "drop-shadow(0 0 5px rgba(85,223,255,0.7))";
+  const orbitGlow = warning
+    ? "drop-shadow(0 0 2px rgba(255,106,61,0.6))"
+    : "drop-shadow(0 0 2px rgba(85,223,255,0.5))";
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" className={warning ? "atom-warning-pulse" : ""}>
+      <circle cx="12" cy="12" r="2.8" fill={coreColor} style={{ filter: coreGlow }} />
+      <ellipse cx="12" cy="12" rx="10" ry="3.8" fill="none" stroke={orbitColor} strokeWidth="1.3" opacity="0.85" style={{ filter: orbitGlow }} />
+      <ellipse cx="12" cy="12" rx="10" ry="3.8" fill="none" stroke={orbitColor} strokeWidth="1.3" opacity="0.85" transform="rotate(60 12 12)" style={{ filter: orbitGlow }} />
+      <ellipse cx="12" cy="12" rx="10" ry="3.8" fill="none" stroke={orbitColor} strokeWidth="1.3" opacity="0.85" transform="rotate(-60 12 12)" style={{ filter: orbitGlow }} />
+    </svg>
+  );
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -138,6 +169,7 @@ export default function Game() {
   const [level, setLevel] = useState(1);
   const [timeLeft, setTimeLeft] = useState(LEVEL_TIMES[0]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const exitConfirmRef = useRef(false);
 
   const livesRef = useRef(LIVES);
   const scoreRef = useRef(0);
@@ -409,12 +441,36 @@ export default function Game() {
     return () => window.removeEventListener("keydown", onKey);
   }, [togglePause]);
 
-  // Android back button → show exit confirm
+  // Sync exitConfirmRef with state so the backButton listener can read it without stale closure
+  useEffect(() => { exitConfirmRef.current = showExitConfirm; }, [showExitConfirm]);
+
+  // Android back button → pause if playing, then show exit confirm
   useEffect(() => {
-    const listener = App.addListener("backButton", () => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const listenerPromise = App.addListener("backButton", () => {
+      // Prevent duplicate popup
+      if (exitConfirmRef.current) return;
+
+      // Pause active gameplay before showing exit dialog
+      if (
+        launchedRef.current &&
+        !pausedRef.current &&
+        !goRef.current &&
+        !clearRef.current &&
+        runnerRef.current
+      ) {
+        pausedRef.current = true;
+        setPaused(true);
+        pauseStartRef.current = performance.now();
+        Matter.Runner.stop(runnerRef.current);
+        stopBGM();
+      }
+
       setShowExitConfirm(true);
     });
-    return () => { listener.then(h => h.remove()); };
+
+    return () => { listenerPromise.then(h => h.remove()); };
   }, []);
 
   // ══════════════════════════════════════════════════════
@@ -556,9 +612,10 @@ export default function Game() {
           }
           existingTexts.push({
             text: `x${comboLevel} COMBO!`,
-            x: GW - 70, y: GH - 80,
-            life: 60, maxLife: 60,
-            color: "#ffffff",
+            x: GW - 80, y: GH - 210,
+            life: 70, maxLife: 70,
+            color: "#FFD060",
+            isCombo: true,
           });
         }
 
@@ -987,8 +1044,8 @@ export default function Game() {
 
         // Atomic number (top-left, tiny)
         ctx.fillStyle = vs.textColor;
-        ctx.globalAlpha = 0.45;
-        ctx.font = "bold 6px Pretendard, sans-serif";
+        ctx.globalAlpha = 0.28;
+        ctx.font = "400 6px Pretendard, sans-serif";
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
         ctx.fillText(String(el.atomicNumber), bx + 1, by + 1);
@@ -1000,7 +1057,7 @@ export default function Game() {
           ctx.shadowBlur = 2;
           ctx.shadowColor = "rgba(0,0,0,0.5)";
         }
-        ctx.font = "bold 10px Pretendard, sans-serif";
+        ctx.font = "400 12px Pretendard, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(el.symbol, blk.x, blk.y + 2);
@@ -1108,7 +1165,7 @@ export default function Game() {
         // ☢ radiation symbol when pierce is active
         if (isPiercing) {
           ctx.fillStyle = "#052e16";
-          ctx.font = `bold ${Math.round(br * 1.4)}px Pretendard, sans-serif`;
+          ctx.font = `700 ${Math.round(br * 1.4)}px Pretendard, sans-serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText("☢", b.position.x, b.position.y);
@@ -1135,25 +1192,47 @@ export default function Game() {
       for (let i = fts.length - 1; i >= 0; i--) {
         const ft = fts[i];
         ft.life -= 1;
-        ft.y -= 0.2; // float upward very slowly
+        if (!ft.isCombo) ft.y -= 0.2; // element texts float upward; combo stays put
         if (ft.life <= 0) { fts.splice(i, 1); continue; }
         const progress = ft.life / ft.maxLife;
-        // Fade in for first 20%, stay, fade out last 30%
+
         let alpha: number;
-        if (progress > 0.8) alpha = (1 - progress) / 0.2;      // fade in
-        else if (progress < 0.3) alpha = progress / 0.3;        // fade out
-        else alpha = 1;
+        if (ft.isCombo) {
+          // Pop in immediately (no fade-in), fade out in last 30%
+          alpha = progress < 0.3 ? progress / 0.3 : 1;
+        } else {
+          if (progress > 0.8) alpha = (1 - progress) / 0.2;
+          else if (progress < 0.3) alpha = progress / 0.3;
+          else alpha = 1;
+        }
 
         ctx.globalAlpha = alpha;
-        ctx.fillStyle = ft.color;
-        ctx.font = "600 14px Pretendard, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        // Shadow for readability
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = "rgba(0,0,0,0.8)";
-        ctx.fillText(ft.text, ft.x, ft.y);
-        ctx.shadowBlur = 0;
+
+        if (ft.isCombo) {
+          // Scale-up pop: 1.5x at birth → 1.0x by 30% elapsed
+          const s = progress > 0.7 ? 1.0 + (progress - 0.7) * (0.5 / 0.3) : 1.0;
+          ctx.save();
+          ctx.translate(ft.x, ft.y);
+          ctx.scale(s, s);
+          ctx.fillStyle = ft.color;
+          ctx.font = "700 22px Pretendard, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.shadowBlur = 20;
+          ctx.shadowColor = "#FFB300";
+          ctx.fillText(ft.text, 0, 0);
+          ctx.shadowBlur = 0;
+          ctx.restore();
+        } else {
+          ctx.fillStyle = ft.color;
+          ctx.font = "700 18px Pretendard, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = "rgba(0,0,0,0.8)";
+          ctx.fillText(ft.text, ft.x, ft.y);
+          ctx.shadowBlur = 0;
+        }
         ctx.globalAlpha = 1;
       }
 
@@ -1276,16 +1355,19 @@ export default function Game() {
         </button>
         {showExitConfirm && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="flex flex-col gap-3 w-[70%] max-w-[260px] p-5 rounded-xl" style={{ background: "rgba(20,25,50,0.95)", border: "1px solid rgba(180,210,255,0.2)" }}>
-              <p className="text-center text-sm font-bold" style={{ color: "#DCE7FF" }}>게임을 종료하시겠습니까?</p>
+            <div className="flex flex-col gap-4 w-[75%] max-w-[280px] p-5 rounded-xl" style={{ background: "rgba(15,20,45,0.97)", border: "1px solid rgba(180,210,255,0.25)", boxShadow: "0 0 30px rgba(91,192,235,0.1)" }}>
+              <div>
+                <p className="text-center text-base font-bold" style={{ color: "#DCE7FF" }}>게임 종료</p>
+                <p className="text-center text-sm mt-1" style={{ color: "rgba(220,231,255,0.55)" }}>게임을 종료하시겠습니까?</p>
+              </div>
               <div className="flex gap-2">
                 <button onClick={() => setShowExitConfirm(false)}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
-                  아니오
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: "rgba(30,40,80,0.6)", color: "#A8C4FF", border: "1px solid rgba(180,210,255,0.15)" }}>
+                  취소
                 </button>
                 <button onClick={() => App.exitApp()}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(255,90,95,0.3)", color: "#FF5A5F", border: "1px solid rgba(255,90,95,0.3)" }}>
-                  예
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: "rgba(255,60,60,0.22)", color: "#FF6B6B", border: "1px solid rgba(255,90,95,0.45)" }}>
+                  종료
                 </button>
               </div>
             </div>
@@ -1299,12 +1381,13 @@ export default function Game() {
   if (!difficulty) {
     const bestScore = homeTop3[0]?.score;
     return (
-      <div className="relative flex flex-col items-center justify-end w-full select-none"
-        style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.webp')", backgroundSize: "cover", backgroundPosition: "center" }}>
+      <div className="relative w-full select-none"
+        style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.png?v=3')", backgroundSize: "100% auto", backgroundPosition: "top center", backgroundRepeat: "no-repeat" }}>
 
 
-        {/* UI overlay — bottom section */}
-        <div className="relative z-10 flex flex-col items-center gap-3 px-4 w-full max-w-[400px]" style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}>
+        {/* UI overlay — centered at 75% from top */}
+        <div className="absolute z-10 flex flex-col items-center gap-3 px-4 w-full max-w-[400px]"
+          style={{ top: "75%", left: "50%", transform: "translate(-50%, -50%)" }}>
 
           {/* GAME START label */}
           <div className="flex items-center gap-2">
@@ -1368,22 +1451,23 @@ export default function Game() {
             현재 최고 점수: <span className="font-bold text-white">{bestScore != null ? bestScore.toLocaleString() : "---"}</span> | 레벨: <span className="font-bold text-white">{homeTop3[0]?.level ?? "-"}</span>
           </p>
 
-          {/* Version */}
-          <div className="mt-4" />
           <p className="text-[9px] text-white/30">버전 1.0.1</p>
         </div>
         {showExitConfirm && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="flex flex-col gap-3 w-[70%] max-w-[260px] p-5 rounded-xl" style={{ background: "rgba(20,25,50,0.95)", border: "1px solid rgba(180,210,255,0.2)" }}>
-              <p className="text-center text-sm font-bold" style={{ color: "#DCE7FF" }}>게임을 종료하시겠습니까?</p>
+            <div className="flex flex-col gap-4 w-[75%] max-w-[280px] p-5 rounded-xl" style={{ background: "rgba(15,20,45,0.97)", border: "1px solid rgba(180,210,255,0.25)", boxShadow: "0 0 30px rgba(91,192,235,0.1)" }}>
+              <div>
+                <p className="text-center text-base font-bold" style={{ color: "#DCE7FF" }}>게임 종료</p>
+                <p className="text-center text-sm mt-1" style={{ color: "rgba(220,231,255,0.55)" }}>게임을 종료하시겠습니까?</p>
+              </div>
               <div className="flex gap-2">
                 <button onClick={() => setShowExitConfirm(false)}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
-                  아니오
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: "rgba(30,40,80,0.6)", color: "#A8C4FF", border: "1px solid rgba(180,210,255,0.15)" }}>
+                  취소
                 </button>
                 <button onClick={() => App.exitApp()}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(255,90,95,0.3)", color: "#FF5A5F", border: "1px solid rgba(255,90,95,0.3)" }}>
-                  예
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: "rgba(255,60,60,0.22)", color: "#FF6B6B", border: "1px solid rgba(255,90,95,0.45)" }}>
+                  종료
                 </button>
               </div>
             </div>
@@ -1394,80 +1478,67 @@ export default function Game() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-2 sm:gap-3 select-none py-2 sm:py-4 px-1 w-full max-w-[560px] mx-auto bg-black" style={{ height: "100dvh", overflow: "hidden" }}>
-      {/* Title image */}
-      <img src="/Title_inside.webp" alt="Element Breaker" className="w-full max-w-[560px] h-auto" />
+    <div className="flex flex-col select-none w-full max-w-[560px] mx-auto bg-black"
+      style={{ height: "100dvh", overflow: "hidden", padding: "4px 8px 0" }}>
 
-      {/* HUD */}
-      {/* ── HUD ── */}
-      <div className="flex items-start justify-between w-full px-2 py-1">
-        {/* Left: Lives (atom icons) + settings/pause */}
-        <div className="flex flex-col gap-1.5">
-          {/* Atom lives — mint neon */}
-          <div className="flex gap-1">
+      {/* Logo — compact banner */}
+      <img src="/Title_inside.png?v=3" alt="Element Breaker"
+        style={{ height: "58px", width: "100%", objectFit: "contain", flexShrink: 0 }} />
+
+      {/* ── HUD — Left: Lv+lives  |  Right: score+time+pause ── */}
+      <div className="w-full flex items-center justify-between"
+        style={{ height: "44px", flexShrink: 0, fontVariantNumeric: "tabular-nums", fontFeatureSettings: '"tnum"' }}>
+
+        {/* Left group: Lv + atom lives */}
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: "14px", fontWeight: 700, color: "#DCE7FF", whiteSpace: "nowrap" as const }}>
+            Lv.{level}
+          </span>
+          <div className="flex gap-1.5 items-center">
             {Array.from({ length: LIVES }).map((_, i) => {
               const active = i < lives;
-              return (
-                <svg key={i} width="19" height="19" viewBox="0 0 24 24" className="transition-opacity duration-300"
-                  style={{ opacity: active ? 1 : 0.18 }}>
-                  <circle cx="12" cy="12" r="3" fill={active ? "#5BC0EB" : "#555"} />
-                  {active && <circle cx="12" cy="12" r="3" fill="#5BC0EB" style={{ filter: "drop-shadow(0 0 5px rgba(91,192,235,0.6))" }} />}
-                  <ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke={active ? "#A8E4FF" : "#444"} strokeWidth="1.2" opacity={active ? 0.7 : 0.3} />
-                  <ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke={active ? "#A8E4FF" : "#444"} strokeWidth="1.2" opacity={active ? 0.7 : 0.3} transform="rotate(60 12 12)" />
-                  <ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke={active ? "#A8E4FF" : "#444"} strokeWidth="1.2" opacity={active ? 0.7 : 0.3} transform="rotate(-60 12 12)" />
-                </svg>
-              );
+              const warning = active && lives === 1;
+              return <AtomLifeIcon key={i} active={active} warning={warning} />;
             })}
           </div>
-          {/* Settings + Pause */}
-          {launched && (
-            <div className="flex items-center gap-1">
-              <button onClick={() => {
-                const opening = !showSettings;
-                setShowSettings(opening);
-                if (opening) {
-                  wasPausedRef.current = pausedRef.current;
-                  if (pausedRef.current) {
-                    setPaused(false); // hide pause overlay
-                  } else {
-                    // Game was running — pause it
-                    pauseStartRef.current = performance.now();
-                    if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
-                    stopBGM();
-                  }
-                }
-              }}
-                className="w-6 h-6 flex items-center justify-center rounded active:brightness-150"
-                style={{ background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#DCE7FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-              </button>
-              {!gameOver && !stageClear && !paused && !showSettings ? (
-                <button onClick={togglePause}
-                  className="w-6 h-6 flex items-center justify-center rounded active:brightness-150"
-                  style={{ background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
-                  <svg width="8" height="8" viewBox="0 0 14 14" fill="#DCE7FF"><rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/></svg>
-                </button>
-              ) : <div className="w-6" />}
-            </div>
-          )}
         </div>
 
-        {/* Right: Lv+Time (line1) + Score (line2) */}
-        <div className="flex flex-col items-end">
-          <div className="flex items-baseline gap-3" style={{ fontVariantNumeric: "tabular-nums" }}>
-            <span style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.15, color: "#DCE7FF" }}>Lv.{level}</span>
-            <span style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.15, color: timeLeft <= 30 ? "#FF5A5F" : "#DCE7FF" }}>
-              {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
-            </span>
-          </div>
-          <span style={{ fontSize: "22px", fontWeight: 800, lineHeight: 1, color: "#F4F7FF", textShadow: "0 0 8px rgba(120,160,255,0.28)", fontVariantNumeric: "tabular-nums", minWidth: "80px", textAlign: "right" as const, display: "inline-block", marginTop: "4px" }}>
+        {/* Right group: score + time + pause */}
+        <div className="flex items-center gap-2">
+          {/* Score — min-width so layout doesn't shift on digit changes */}
+          <span style={{ fontSize: "16px", fontWeight: 700, color: "#F4F7FF", textShadow: "0 0 8px rgba(120,160,255,0.28)", minWidth: "4ch", textAlign: "right" as const, display: "inline-block", marginRight: "-4px" }}>
             {score.toLocaleString()}
           </span>
+          {/* Time — fixed 5ch so 07:00 never reflows */}
+          <span style={{ fontSize: "14px", fontWeight: 700, color: timeLeft <= 30 ? "#FF5A5F" : "#A8C4FF", width: "5ch", textAlign: "right" as const, display: "inline-block", flexShrink: 0 }}>
+            {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}
+          </span>
+          {/* Pause — always right-most, hidden on game over / stage clear */}
+          {!gameOver && !stageClear && (
+            <button onClick={() => {
+              const opening = !showSettings;
+              setShowSettings(opening);
+              if (opening) {
+                wasPausedRef.current = pausedRef.current;
+                if (pausedRef.current) {
+                  setPaused(false);
+                } else {
+                  pauseStartRef.current = performance.now();
+                  if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
+                  stopBGM();
+                }
+              }
+            }}
+              className="w-[29px] h-[29px] flex items-center justify-center rounded active:brightness-150"
+              style={{ flexShrink: 0, background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
+              <svg width="10" height="10" viewBox="0 0 14 14" fill="#DCE7FF"><rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/></svg>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Canvas */}
-      <div className="relative rounded-lg overflow-hidden shadow-[0_0_40px_rgba(91,192,235,0.15)] w-full">
+      <div className="relative rounded-lg overflow-hidden shadow-[0_0_40px_rgba(91,192,235,0.15)] w-full" style={{ marginTop: "6px" }}>
         <canvas ref={canvasRef} width={GW} height={GH}
           className="block w-full h-auto cursor-none touch-none"
           style={{ aspectRatio: `${GW}/${GH}` }} />
@@ -1678,16 +1749,19 @@ export default function Game() {
       {/* Exit confirm dialog (Android back button) */}
       {showExitConfirm && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="flex flex-col gap-3 w-[70%] max-w-[260px] p-5 rounded-xl" style={{ background: "rgba(20,25,50,0.95)", border: "1px solid rgba(180,210,255,0.2)" }}>
-            <p className="text-center text-sm font-bold" style={{ color: "#DCE7FF" }}>게임을 종료하시겠습니까?</p>
+          <div className="flex flex-col gap-4 w-[75%] max-w-[280px] p-5 rounded-xl" style={{ background: "rgba(15,20,45,0.97)", border: "1px solid rgba(180,210,255,0.25)", boxShadow: "0 0 30px rgba(91,192,235,0.1)" }}>
+            <div>
+              <p className="text-center text-base font-bold" style={{ color: "#DCE7FF" }}>게임 종료</p>
+              <p className="text-center text-sm mt-1" style={{ color: "rgba(220,231,255,0.55)" }}>게임을 종료하시겠습니까?</p>
+            </div>
             <div className="flex gap-2">
               <button onClick={() => setShowExitConfirm(false)}
-                className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
-                아니오
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: "rgba(30,40,80,0.6)", color: "#A8C4FF", border: "1px solid rgba(180,210,255,0.15)" }}>
+                취소
               </button>
               <button onClick={() => App.exitApp()}
-                className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(255,90,95,0.3)", color: "#FF5A5F", border: "1px solid rgba(255,90,95,0.3)" }}>
-                예
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: "rgba(255,60,60,0.22)", color: "#FF6B6B", border: "1px solid rgba(255,90,95,0.45)" }}>
+                종료
               </button>
             </div>
           </div>
