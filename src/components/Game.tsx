@@ -1044,7 +1044,7 @@ export default function Game() {
 
         // Atomic number (top-left, tiny)
         ctx.fillStyle = vs.textColor;
-        ctx.globalAlpha = 0.28;
+        ctx.globalAlpha = 0.55;
         ctx.font = "400 6px Pretendard, sans-serif";
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
