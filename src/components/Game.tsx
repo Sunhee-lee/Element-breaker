@@ -19,6 +19,7 @@ import {
   startBGM, stopBGM, setBGMVolume, startMenuBGM, stopMenuBGM,
 } from "@/game/sound";
 import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 
 // ── Constants ─────────────────────────────────────────────
 const GW = 560;
@@ -168,6 +169,7 @@ export default function Game() {
   const [level, setLevel] = useState(1);
   const [timeLeft, setTimeLeft] = useState(LEVEL_TIMES[0]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const exitConfirmRef = useRef(false);
 
   const livesRef = useRef(LIVES);
   const scoreRef = useRef(0);
@@ -439,12 +441,36 @@ export default function Game() {
     return () => window.removeEventListener("keydown", onKey);
   }, [togglePause]);
 
-  // Android back button → show exit confirm
+  // Sync exitConfirmRef with state so the backButton listener can read it without stale closure
+  useEffect(() => { exitConfirmRef.current = showExitConfirm; }, [showExitConfirm]);
+
+  // Android back button → pause if playing, then show exit confirm
   useEffect(() => {
-    const listener = App.addListener("backButton", () => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const listenerPromise = App.addListener("backButton", () => {
+      // Prevent duplicate popup
+      if (exitConfirmRef.current) return;
+
+      // Pause active gameplay before showing exit dialog
+      if (
+        launchedRef.current &&
+        !pausedRef.current &&
+        !goRef.current &&
+        !clearRef.current &&
+        runnerRef.current
+      ) {
+        pausedRef.current = true;
+        setPaused(true);
+        pauseStartRef.current = performance.now();
+        Matter.Runner.stop(runnerRef.current);
+        stopBGM();
+      }
+
       setShowExitConfirm(true);
     });
-    return () => { listener.then(h => h.remove()); };
+
+    return () => { listenerPromise.then(h => h.remove()); };
   }, []);
 
   // ══════════════════════════════════════════════════════
@@ -1329,16 +1355,19 @@ export default function Game() {
         </button>
         {showExitConfirm && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="flex flex-col gap-3 w-[70%] max-w-[260px] p-5 rounded-xl" style={{ background: "rgba(20,25,50,0.95)", border: "1px solid rgba(180,210,255,0.2)" }}>
-              <p className="text-center text-sm font-bold" style={{ color: "#DCE7FF" }}>게임을 종료하시겠습니까?</p>
+            <div className="flex flex-col gap-4 w-[75%] max-w-[280px] p-5 rounded-xl" style={{ background: "rgba(15,20,45,0.97)", border: "1px solid rgba(180,210,255,0.25)", boxShadow: "0 0 30px rgba(91,192,235,0.1)" }}>
+              <div>
+                <p className="text-center text-base font-bold" style={{ color: "#DCE7FF" }}>게임 종료</p>
+                <p className="text-center text-sm mt-1" style={{ color: "rgba(220,231,255,0.55)" }}>게임을 종료하시겠습니까?</p>
+              </div>
               <div className="flex gap-2">
                 <button onClick={() => setShowExitConfirm(false)}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
-                  아니오
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: "rgba(30,40,80,0.6)", color: "#A8C4FF", border: "1px solid rgba(180,210,255,0.15)" }}>
+                  취소
                 </button>
                 <button onClick={() => App.exitApp()}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(255,90,95,0.3)", color: "#FF5A5F", border: "1px solid rgba(255,90,95,0.3)" }}>
-                  예
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: "rgba(255,60,60,0.22)", color: "#FF6B6B", border: "1px solid rgba(255,90,95,0.45)" }}>
+                  종료
                 </button>
               </div>
             </div>
@@ -1426,16 +1455,19 @@ export default function Game() {
         </div>
         {showExitConfirm && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="flex flex-col gap-3 w-[70%] max-w-[260px] p-5 rounded-xl" style={{ background: "rgba(20,25,50,0.95)", border: "1px solid rgba(180,210,255,0.2)" }}>
-              <p className="text-center text-sm font-bold" style={{ color: "#DCE7FF" }}>게임을 종료하시겠습니까?</p>
+            <div className="flex flex-col gap-4 w-[75%] max-w-[280px] p-5 rounded-xl" style={{ background: "rgba(15,20,45,0.97)", border: "1px solid rgba(180,210,255,0.25)", boxShadow: "0 0 30px rgba(91,192,235,0.1)" }}>
+              <div>
+                <p className="text-center text-base font-bold" style={{ color: "#DCE7FF" }}>게임 종료</p>
+                <p className="text-center text-sm mt-1" style={{ color: "rgba(220,231,255,0.55)" }}>게임을 종료하시겠습니까?</p>
+              </div>
               <div className="flex gap-2">
                 <button onClick={() => setShowExitConfirm(false)}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
-                  아니오
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: "rgba(30,40,80,0.6)", color: "#A8C4FF", border: "1px solid rgba(180,210,255,0.15)" }}>
+                  취소
                 </button>
                 <button onClick={() => App.exitApp()}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(255,90,95,0.3)", color: "#FF5A5F", border: "1px solid rgba(255,90,95,0.3)" }}>
-                  예
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: "rgba(255,60,60,0.22)", color: "#FF6B6B", border: "1px solid rgba(255,90,95,0.45)" }}>
+                  종료
                 </button>
               </div>
             </div>
@@ -1716,16 +1748,19 @@ export default function Game() {
       {/* Exit confirm dialog (Android back button) */}
       {showExitConfirm && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="flex flex-col gap-3 w-[70%] max-w-[260px] p-5 rounded-xl" style={{ background: "rgba(20,25,50,0.95)", border: "1px solid rgba(180,210,255,0.2)" }}>
-            <p className="text-center text-sm font-bold" style={{ color: "#DCE7FF" }}>게임을 종료하시겠습니까?</p>
+          <div className="flex flex-col gap-4 w-[75%] max-w-[280px] p-5 rounded-xl" style={{ background: "rgba(15,20,45,0.97)", border: "1px solid rgba(180,210,255,0.25)", boxShadow: "0 0 30px rgba(91,192,235,0.1)" }}>
+            <div>
+              <p className="text-center text-base font-bold" style={{ color: "#DCE7FF" }}>게임 종료</p>
+              <p className="text-center text-sm mt-1" style={{ color: "rgba(220,231,255,0.55)" }}>게임을 종료하시겠습니까?</p>
+            </div>
             <div className="flex gap-2">
               <button onClick={() => setShowExitConfirm(false)}
-                className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: "rgba(30,40,80,0.5)", color: "#DCE7FF" }}>
-                아니오
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: "rgba(30,40,80,0.6)", color: "#A8C4FF", border: "1px solid rgba(180,210,255,0.15)" }}>
+                취소
               </button>
               <button onClick={() => App.exitApp()}
-                className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold" style={{ background: "rgba(255,90,95,0.3)", color: "#FF5A5F", border: "1px solid rgba(255,90,95,0.3)" }}>
-                예
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: "rgba(255,60,60,0.22)", color: "#FF6B6B", border: "1px solid rgba(255,90,95,0.45)" }}>
+                종료
               </button>
             </div>
           </div>
