@@ -57,6 +57,36 @@ interface FloatingText {
   life: number;
   maxLife: number;
   color: string;
+  isCombo?: boolean;
+}
+
+function AtomLifeIcon({ active, warning }: { active: boolean; warning: boolean }) {
+  if (!active) {
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="2.8" fill="#1E2530" />
+        <ellipse cx="12" cy="12" rx="10" ry="3.8" fill="none" stroke="#2B3440" strokeWidth="1.2" opacity="0.55" />
+        <ellipse cx="12" cy="12" rx="10" ry="3.8" fill="none" stroke="#2B3440" strokeWidth="1.2" opacity="0.55" transform="rotate(60 12 12)" />
+        <ellipse cx="12" cy="12" rx="10" ry="3.8" fill="none" stroke="#2B3440" strokeWidth="1.2" opacity="0.55" transform="rotate(-60 12 12)" />
+      </svg>
+    );
+  }
+  const coreColor = warning ? "#FFB347" : "#BFF7FF";
+  const orbitColor = warning ? "#FF8C42" : "#55DFFF";
+  const coreGlow = warning
+    ? "drop-shadow(0 0 4px rgba(255,106,61,0.85))"
+    : "drop-shadow(0 0 5px rgba(85,223,255,0.7))";
+  const orbitGlow = warning
+    ? "drop-shadow(0 0 2px rgba(255,106,61,0.6))"
+    : "drop-shadow(0 0 2px rgba(85,223,255,0.5))";
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" className={warning ? "atom-warning-pulse" : ""}>
+      <circle cx="12" cy="12" r="2.8" fill={coreColor} style={{ filter: coreGlow }} />
+      <ellipse cx="12" cy="12" rx="10" ry="3.8" fill="none" stroke={orbitColor} strokeWidth="1.3" opacity="0.85" style={{ filter: orbitGlow }} />
+      <ellipse cx="12" cy="12" rx="10" ry="3.8" fill="none" stroke={orbitColor} strokeWidth="1.3" opacity="0.85" transform="rotate(60 12 12)" style={{ filter: orbitGlow }} />
+      <ellipse cx="12" cy="12" rx="10" ry="3.8" fill="none" stroke={orbitColor} strokeWidth="1.3" opacity="0.85" transform="rotate(-60 12 12)" style={{ filter: orbitGlow }} />
+    </svg>
+  );
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -556,9 +586,10 @@ export default function Game() {
           }
           existingTexts.push({
             text: `x${comboLevel} COMBO!`,
-            x: GW - 70, y: GH - 80,
-            life: 60, maxLife: 60,
-            color: "#ffffff",
+            x: GW - 80, y: GH - 210,
+            life: 70, maxLife: 70,
+            color: "#FFD060",
+            isCombo: true,
           });
         }
 
@@ -1135,25 +1166,47 @@ export default function Game() {
       for (let i = fts.length - 1; i >= 0; i--) {
         const ft = fts[i];
         ft.life -= 1;
-        ft.y -= 0.2; // float upward very slowly
+        if (!ft.isCombo) ft.y -= 0.2; // element texts float upward; combo stays put
         if (ft.life <= 0) { fts.splice(i, 1); continue; }
         const progress = ft.life / ft.maxLife;
-        // Fade in for first 20%, stay, fade out last 30%
+
         let alpha: number;
-        if (progress > 0.8) alpha = (1 - progress) / 0.2;      // fade in
-        else if (progress < 0.3) alpha = progress / 0.3;        // fade out
-        else alpha = 1;
+        if (ft.isCombo) {
+          // Pop in immediately (no fade-in), fade out in last 30%
+          alpha = progress < 0.3 ? progress / 0.3 : 1;
+        } else {
+          if (progress > 0.8) alpha = (1 - progress) / 0.2;
+          else if (progress < 0.3) alpha = progress / 0.3;
+          else alpha = 1;
+        }
 
         ctx.globalAlpha = alpha;
-        ctx.fillStyle = ft.color;
-        ctx.font = "600 18px Pretendard, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        // Shadow for readability
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = "rgba(0,0,0,0.8)";
-        ctx.fillText(ft.text, ft.x, ft.y);
-        ctx.shadowBlur = 0;
+
+        if (ft.isCombo) {
+          // Scale-up pop: 1.5x at birth → 1.0x by 30% elapsed
+          const s = progress > 0.7 ? 1.0 + (progress - 0.7) * (0.5 / 0.3) : 1.0;
+          ctx.save();
+          ctx.translate(ft.x, ft.y);
+          ctx.scale(s, s);
+          ctx.fillStyle = ft.color;
+          ctx.font = "800 22px Pretendard, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.shadowBlur = 20;
+          ctx.shadowColor = "#FFB300";
+          ctx.fillText(ft.text, 0, 0);
+          ctx.shadowBlur = 0;
+          ctx.restore();
+        } else {
+          ctx.fillStyle = ft.color;
+          ctx.font = "600 18px Pretendard, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = "rgba(0,0,0,0.8)";
+          ctx.fillText(ft.text, ft.x, ft.y);
+          ctx.shadowBlur = 0;
+        }
         ctx.globalAlpha = 1;
       }
 
@@ -1401,47 +1454,34 @@ export default function Game() {
       {/* HUD */}
       {/* ── HUD ── */}
       <div className="flex items-start justify-between w-full px-2 py-1">
-        {/* Left: Lives (atom icons) + settings/pause */}
-        <div className="flex flex-col gap-1.5">
-          {/* Atom lives — mint neon */}
-          <div className="flex gap-1">
+        {/* Left: atom lives + pause button in one row */}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1.5">
             {Array.from({ length: LIVES }).map((_, i) => {
               const active = i < lives;
-              return (
-                <svg key={i} width="19" height="19" viewBox="0 0 24 24" className="transition-opacity duration-300"
-                  style={{ opacity: active ? 1 : 0.18 }}>
-                  <circle cx="12" cy="12" r="3" fill={active ? "#5BC0EB" : "#555"} />
-                  {active && <circle cx="12" cy="12" r="3" fill="#5BC0EB" style={{ filter: "drop-shadow(0 0 5px rgba(91,192,235,0.6))" }} />}
-                  <ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke={active ? "#A8E4FF" : "#444"} strokeWidth="1.2" opacity={active ? 0.7 : 0.3} />
-                  <ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke={active ? "#A8E4FF" : "#444"} strokeWidth="1.2" opacity={active ? 0.7 : 0.3} transform="rotate(60 12 12)" />
-                  <ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke={active ? "#A8E4FF" : "#444"} strokeWidth="1.2" opacity={active ? 0.7 : 0.3} transform="rotate(-60 12 12)" />
-                </svg>
-              );
+              const warning = active && lives === 1;
+              return <AtomLifeIcon key={i} active={active} warning={warning} />;
             })}
           </div>
-          {/* Settings + Pause */}
           {launched && (
-            <div className="flex items-center gap-1">
-              <button onClick={() => {
-                const opening = !showSettings;
-                setShowSettings(opening);
-                if (opening) {
-                  wasPausedRef.current = pausedRef.current;
-                  if (pausedRef.current) {
-                    setPaused(false); // hide pause overlay
-                  } else {
-                    // Game was running — pause it
-                    pauseStartRef.current = performance.now();
-                    if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
-                    stopBGM();
-                  }
+            <button onClick={() => {
+              const opening = !showSettings;
+              setShowSettings(opening);
+              if (opening) {
+                wasPausedRef.current = pausedRef.current;
+                if (pausedRef.current) {
+                  setPaused(false);
+                } else {
+                  pauseStartRef.current = performance.now();
+                  if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
+                  stopBGM();
                 }
-              }}
-                className="w-6 h-6 flex items-center justify-center rounded active:brightness-150"
-                style={{ background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
-                <svg width="8" height="8" viewBox="0 0 14 14" fill="#DCE7FF"><rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/></svg>
-              </button>
-            </div>
+              }
+            }}
+              className="w-[29px] h-[29px] flex items-center justify-center rounded active:brightness-150"
+              style={{ background: "rgba(30,40,80,0.45)", border: "1px solid rgba(180,210,255,0.28)" }}>
+              <svg width="10" height="10" viewBox="0 0 14 14" fill="#DCE7FF"><rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/></svg>
+            </button>
           )}
         </div>
 
