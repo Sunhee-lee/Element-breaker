@@ -1385,9 +1385,9 @@ export default function Game() {
         style={{ height: "100dvh", overflow: "hidden", backgroundImage: "url('/Title_image.png?v=2')", backgroundSize: "100% auto", backgroundPosition: "top center", backgroundRepeat: "no-repeat" }}>
 
 
-        {/* UI overlay — centered at 85% from top */}
+        {/* UI overlay — centered at 75% from top */}
         <div className="absolute z-10 flex flex-col items-center gap-3 px-4 w-full max-w-[400px]"
-          style={{ top: "85%", left: "50%", transform: "translate(-50%, -50%)" }}>
+          style={{ top: "75%", left: "50%", transform: "translate(-50%, -50%)" }}>
 
           {/* GAME START label */}
           <div className="flex items-center gap-2">
@@ -1482,15 +1482,14 @@ export default function Game() {
       style={{ height: "100dvh", overflow: "hidden", padding: "4px 8px 0" }}>
 
       {/* Logo — compact banner */}
-      <img src="/Title_inside.png?v=2" alt="Element Breaker"
+      <img src="/Title_inside.png?v=3" alt="Element Breaker"
         style={{ height: "58px", width: "100%", objectFit: "contain", flexShrink: 0 }} />
 
-      {/* ── HUD — single row ── */}
-      <div className="flex items-center justify-between w-full"
-        style={{ height: "44px", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
+      {/* ── HUD — single row (3-column grid) ── */}
+      <div className="w-full" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", height: "44px", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
 
         {/* Left: atom lives */}
-        <div className="flex gap-1.5 items-center" style={{ minWidth: 0 }}>
+        <div className="flex gap-1.5 items-center">
           {Array.from({ length: LIVES }).map((_, i) => {
             const active = i < lives;
             const warning = active && lives === 1;
@@ -1498,13 +1497,13 @@ export default function Game() {
           })}
         </div>
 
-        {/* Center: Level */}
-        <span style={{ fontSize: "15px", fontWeight: 700, color: "#DCE7FF", flexShrink: 0, padding: "0 8px" }}>
+        {/* Center: Level — truly centered */}
+        <span style={{ fontSize: "15px", fontWeight: 700, color: "#DCE7FF", textAlign: "center" as const, whiteSpace: "nowrap" as const }}>
           Lv.{level}
         </span>
 
         {/* Right: time + score + pause */}
-        <div className="flex items-center gap-2" style={{ minWidth: 0 }}>
+        <div className="flex items-center gap-2" style={{ justifySelf: "end" as const }}>
           <div className="flex flex-col items-end" style={{ minWidth: 0 }}>
             <span style={{ fontSize: "13px", fontWeight: 700, lineHeight: 1.2, color: timeLeft <= 30 ? "#FF5A5F" : "#A8C4FF" }}>
               {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
@@ -1513,7 +1512,7 @@ export default function Game() {
               {score.toLocaleString()}
             </span>
           </div>
-          {launched && (
+          {!gameOver && !stageClear && (
             <button onClick={() => {
               const opening = !showSettings;
               setShowSettings(opening);
