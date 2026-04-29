@@ -7,13 +7,8 @@ android {
         applicationId "com.elementbreaker.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-<<<<<<< HEAD
-        versionCode 2
-        versionName "1.1"
-=======
         versionCode 3
-        versionName "1.0.0"
->>>>>>> b38d1038d0d42d6a5ead054cb4e5d4e501c55cc2
+        versionName "1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
