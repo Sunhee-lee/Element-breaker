@@ -13,6 +13,7 @@ import { VfxManager } from "@/game/vfx";
 import { getFlavorText } from "@/game/elementFlavor";
 import { saveRank, getTopRanks, type RankEntry } from "@/game/firebase";
 import { getBlockVisualStyle } from "@/game/blockColors";
+import { getNickname, refreshNickname, resetLocalNickname } from "@/game/nickname";
 import {
   sndPaddle, sndBlockBreak, sndExplosion, sndRadioactive,
   sndCombo, sndPowerup, sndLifeLost, sndMetal,
@@ -159,7 +160,7 @@ export default function Game() {
   const [sfxOn, setSfxOn] = useState(true);
   // Keep ref in sync for use inside useEffect
   useEffect(() => { sfxOnRef.current = sfxOn; }, [sfxOn]);
-  const [playerName, setPlayerName] = useState("");
+  const [playerName, setPlayerName] = useState(() => typeof window !== "undefined" ? getNickname() : "");
   const [rankSaved, setRankSaved] = useState(false);
   const [rankings, setRankings] = useState<RankEntry[]>([]);
   const [homeTab, setHomeTab] = useState("normal"); // mode for TOP 3 preview
@@ -1684,21 +1685,22 @@ export default function Game() {
                 {/* Ranking save */}
                 {!rankSaved ? (
                   <div className="flex flex-col items-center gap-2 mb-2">
+                    <p className="text-xs text-zinc-400">닉네임</p>
+                    <p className="text-sm font-bold text-indigo-300">{playerName}</p>
                     <div className="flex items-center gap-2">
-                      <input type="text" maxLength={10} placeholder="이름 입력"
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value.replace(/[^a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ]/g, ""))}
-                        className="px-2 py-1 text-sm bg-zinc-800 border border-zinc-600 rounded text-zinc-200 w-28 text-center" />
+                      <button onClick={() => setPlayerName(refreshNickname())}
+                        className="px-2 py-1 text-[10px] bg-zinc-700 hover:bg-zinc-600 text-zinc-300 rounded transition-colors">
+                        다른 닉네임 받기
+                      </button>
                       <button onClick={async () => {
-                        if (!playerName.trim() || playerName.trim().length < 1) return;
-                        await saveRank("normal", playerName.trim(), score, level);
+                        await saveRank("normal", playerName, score, level);
                         await new Promise(res => setTimeout(res, 500));
                         const r = await getTopRanks("normal", 50);
                         setRankings(r);
                         setRankSaved(true);
                       }}
                         className="px-3 py-1 text-sm bg-yellow-600 hover:bg-yellow-500 text-white font-semibold rounded transition-colors">
-                        등록
+                        랭킹 등록
                       </button>
                     </div>
                     <button onClick={() => setRankSaved(true)}
