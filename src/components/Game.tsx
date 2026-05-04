@@ -1693,12 +1693,13 @@ export default function Game() {
                         다른 닉네임 받기
                       </button>
                       <button onClick={async () => {
-                        await saveRank("normal", playerName, score, level);
-                        await new Promise(res => setTimeout(res, 500));
-                        const r = await getTopRanks("normal", 50);
-                        setRankings(r);
-                        setRankSaved(true);
-                      }}
+                          if (rankSaved) return;
+                          setRankSaved(true);
+                          await saveRank("normal", playerName, score, level);
+                          await new Promise(res => setTimeout(res, 500));
+                          const r = await getTopRanks("normal", 50);
+                          setRankings(r);
+                        }}
                         className="px-3 py-1 text-sm bg-yellow-600 hover:bg-yellow-500 text-white font-semibold rounded transition-colors">
                         랭킹 등록
                       </button>
