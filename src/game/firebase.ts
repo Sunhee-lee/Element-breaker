@@ -4,7 +4,7 @@
 // ============================================================
 
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, push, get } from "firebase/database";
+import { getDatabase, ref, push, get, query, orderByChild, equalTo, update } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB9zBeqnYsckglsUuWcKOZuuHddfBf6Aro",
@@ -27,17 +27,50 @@ export interface RankEntry {
   timestamp: number;
 }
 
-/** Save a score to mode-specific ranking */
+/** Save a score — only keep highest score per nickname */
 export async function saveRank(mode: string, name: string, score: number, level: number): Promise<void> {
   try {
     const rankRef = ref(db, `ranking_${mode}`);
-    await push(rankRef, {
-      player_name: name,
-      score,
-      level,
-      mode,
-      timestamp: Date.now(),
-    });
+    const q = query(rankRef, orderByChild("player_name"), equalTo(name));
+    const snapshot = await get(q);
+
+    if (snapshot.exists()) {
+      let bestKey: string | null = null;
+      let bestScore = -1;
+      const keysToRemove: string[] = [];
+
+      snapshot.forEach((child) => {
+        const val = child.val() as RankEntry;
+        if (val.score > bestScore) {
+          if (bestKey) keysToRemove.push(bestKey);
+          bestScore = val.score;
+          bestKey = child.key;
+        } else {
+          keysToRemove.push(child.key!);
+        }
+      });
+
+      if (score > bestScore && bestKey) {
+        const updates: Record<string, unknown> = {};
+        updates[bestKey] = { player_name: name, score, level, mode, timestamp: Date.now() };
+        for (const k of keysToRemove) updates[k] = null;
+        await update(rankRef, updates);
+      } else if (score <= bestScore) {
+        if (keysToRemove.length > 0) {
+          const updates: Record<string, null> = {};
+          for (const k of keysToRemove) updates[k] = null;
+          await update(rankRef, updates);
+        }
+      }
+    } else {
+      await push(rankRef, {
+        player_name: name,
+        score,
+        level,
+        mode,
+        timestamp: Date.now(),
+      });
+    }
   } catch (e) {
     console.error("Failed to save rank:", e);
   }
